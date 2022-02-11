@@ -4,9 +4,12 @@ import copy
 import random
 
 import pets
+from common import *
+
 
 def empty_effect():
     pass
+
 
 # possible actions:
 # end turn
@@ -14,37 +17,39 @@ def empty_effect():
 # reposition - requires from_index * to_index
 # sell pet - requires index
 # combine pet - requires index * target
+# roll
+
 
 class Action:
-    def act():
+    def act(self):
         pass
 
 
 @dataclass
 class EndTurn:
-    def valid():
+    def valid(self, player, game):
         return True
 
 
 @dataclass
 class Buy:
-    def __init__(self, source_index, target_index):
-        self.source_index = source_index
-        self.target_index = target_index
-    
-    def validate(self, game):
+    source_index: int
+    target_index: int
+
+    def valid(self, player, game):
         player = game.players[game.current_player_index]
-        # invalid source
+        if self.source_index >= len(player.shop):
+            return False
         # invalid target
         # not enough money
-        return True # FIXME
+        return True  # FIXME
 
-    def act(self, game):
+    def act(self, player, game):
         player = game.players[game.current_player_index]
-        player.money -= 3 # FIXME
-        purchased = player.shop[source_index]
+        player.money -= 3  # FIXME
+        purchased = player.shop[self.source_index]
         if isinstance(purchased.data, PetData):
-            player.pets[target_index] = Pet(purchased.data)
+            player.pets[self.target_index] = Pet(purchased.data)
             # add a pet in target location FIXME
         else:
             # attach food to pet in target location FIXME
@@ -53,27 +58,70 @@ class Buy:
 
 @dataclass
 class Reposition:
-    def __init__(self, source_index, target_index):
-        self.source_index = source_index
-        self.target_index = target_index
-    
+    source_index: int
+    target_index: int
+
+    def valid(self, player, game):
+        return (
+            player.pets[self.source_index] is not None
+            and self.source_index != self.target_index
+        )
+
+    def act(self, player, game):
+        source_pet = player.pets[self.source_index]
+        delta = 1 if self.target_index > self.source_index else -1
+        for i in range(self.source_index, self.target_index, delta):
+            player.pets[i] = player.pets[i + delta]
+
+        player.pets[self.target_index] = source_pet
+
+
 @dataclass
 class Sell:
-    def __init__(self, index):
-        self.index = index
+    index: int
+
+    def valid(self, player, game):
+        return player.pets[self.index] is not None
+
+    def act(self, player, game):
+        player.pets[self.index] = None
+        player.money += 1  # FIXME
+
+
+@dataclass
+class Roll:
+    def valid(self, player, game):
+        return player.money >= 1
+
+    def act(self, player, game):
+        player.money -= 1
+        player.refresh_shop(game.round)
+
 
 @dataclass
 class Combine:
-    def __init__(self, source_index, target_index):
-        self.source_index = source_index
-        self.target_index = target_index
-    
+    source_index: int
+    target_index: int
+
+    def valid(self, player, game):
+        pet1, pet2 = player.pets[self.source_index], player.pets[self.target_index]
+        if pet1 is None:
+            return False
+        if pet2 is None:
+            return False
+        return pet1.data == pet2.data
+
+    def act(self, player, game):
+        player.pets[self.source_index] = None  # FIXME
+
+
 # add some pets here (there are 80 lol)
 class Pet:
     def __init__(self, pet_data):
         self.attack = pet_data.attack
         self.health = pet_data.health
         self.tier = pet_data.tier
+        self.data = pet_data
         self.food = None
         self.effect = empty_effect
 
@@ -85,19 +133,49 @@ class Food:
 
 class Player:
     def __init__(self, health):
-        self.pets = []
+        self.pets = [None] * 5
         self.shop = []
         self.money = 0
         self.health = health
-    
+
     def get_pets_for_battle(self):
-        return [copy.copy(pet) for pet in self.pets]
+        return [copy.copy(pet) for pet in self.pets if pet is not None]
+
+    def refresh_shop(self, round):
+        # seems to be uniform with replacement among all available pets
+        new_pet_shop = []
+        new_food_shop = []
+        for buyable in self.shop:
+            if buyable is None:
+                continue
+
+            if buyable.frozen:
+                if isinstance(buyable.data, PetData):
+                    new_pet_shop.append(buyable)
+                else:
+                    new_food_shop.append(buyable)
+
+        tier = current_tier(round)
+
+        max_buyable_pets = 3  # FIXME
+        max_buyable_food = min(MAX_SHOP_SIZE, max_buyable_pets - 2)  # FIXME
+
+        while len(new_pet_shop) < max_buyable_pets:
+            new_pet = random.choice(pets.PACK1_AVAILABLE_PETS[tier])
+            new_pet_shop.append(Buyable(new_pet))
+
+        while len(new_food_shop) < max_buyable_food:
+            new_food = random.choice(pets.PACK1_AVAILABLE_FOOD[tier])
+            new_food_shop.append(Buyable(new_food))
+
+        self.shop = new_pet_shop + new_food_shop
 
 
 class Buyable:
     def __init__(self, pet_or_food_data):
         self.data = pet_or_food_data
         self.frozen = False
+
 
 class BattleResult(enum.Enum):
     WIN = 1
@@ -119,34 +197,45 @@ class Game:
         self.round = 1
         self.result = GameResult.UNFINISHED
         self.current_player_index = 0
-    
+        self.start_round()
+
     def check_result(self):
         if self.p2.health <= 0:
             self.result = GameResult.P1_WIN
         if self.p1.health <= 0:
             self.result = GameResult.P2_WIN
 
-    def run(self):
-        while self.result == GameResult.UNFINISHED:
-            self.round += 1
-            for player in self.players:
-                refresh_shop(player, self.round)
-                player.money = 10
-            
-            # <play the actual game> FIXME
+    def start_round(self):
+        for player in self.players:
+            player.refresh_shop(self.round)
+            player.money = 10
 
-            battle_result = resolve_battle(self.p1, self.p2)
-            # print(self.round, self.p1.health, self.p2.health, battle_result)
-            if battle_result == BattleResult.WIN:
-                lose_round(self.p2, self.round)
-            elif battle_result == BattleResult.LOSS:
-                lose_round(self.p1, self.round)
-        
-            self.check_result()
+    def finish_round(self):
+        battle_result = resolve_battle(self.p1, self.p2)
+        # print(self.round, self.p1.health, self.p2.health, battle_result)
+        if battle_result == BattleResult.WIN:
+            lose_round(self.p2, self.round)
+        elif battle_result == BattleResult.LOSS:
+            lose_round(self.p1, self.round)
+
+    def current_player(self):
+        return self.players[self.current_player_index]
+
+    def step(self, action):
+        self.check_result()
+        if self.result != GameResult.UNFINISHED:
+            return self.result
+
+        if type(action) == EndTurn:
+            self.current_player_index = (self.current_player_index + 1) % 2
+            if self.current_player_index == 0:
+                self.finish_round()
+                self.round += 1
+                self.start_round()
+        else:
+            action.act(self.current_player(), self)
+
         return self.result
-    
-    # def step(self, action):
-    #     if action 
 
 
 def current_tier(round):
@@ -161,33 +250,6 @@ def current_tier(round):
     elif round < 11:
         return 5
     return 6
-
-
-def refresh_shop(player, round):
-    # seems to be uniform with replacement among all available pets
-    new_pet_shop = []
-    new_food_shop = []
-    for buyable in player.shop:
-        if buyable.frozen:
-            if isinstance(buyable.data, PetData):
-                new_pet_shop.append(buyable)
-            else:
-                new_food_shop.append(buyable)
-
-    tier = current_tier(round)
-
-    max_pets = 3 # FIXME
-    max_food = 2 # FIXME
-
-    while len(new_pet_shop) < max_pets:
-        new_pet = random.choice(pets.PACK1_AVAILABLE_PETS[tier])
-        new_pet_shop.append(Buyable(new_pet))
-
-    while len(new_food_shop) < max_food:
-        new_food = random.choice(pets.PACK1_AVAILABLE_FOOD[tier])
-        new_food_shop.append(Buyable(new_food))
-
-    player.shop = new_pet_shop + new_food_shop
 
 
 def lose_round(player, round):
@@ -216,12 +278,3 @@ def resolve_battle(p1, p2):
         return BattleResult.LOSS
     else:
         return BattleResult.DRAW
-
-
-if __name__ == '__main__':
-    game = Game()
-    game.p1.pets = [Pet(pets.Ant()), Pet(pets.Cricket()), Pet(pets.Horse())]
-    game.p2.pets = [Pet(pets.Horse()), Pet(pets.Cricket())]
-    print(game.run())
-
-

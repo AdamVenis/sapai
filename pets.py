@@ -1,40 +1,42 @@
 from dataclasses import dataclass
 import collections
+from common import *
 
-class PetData:
-    pass
-
-class FoodData:
-    pass
 
 @dataclass(frozen=True)
 class Ant(PetData):
     attack = 2
     health = 1
     tier = 1
+
     def effect(self):
-        pass # FIXME
+        pass  # FIXME
+
 
 @dataclass(frozen=True)
 class Horse(PetData):
     attack = 2
     health = 1
     tier = 1
+
     def effect(self):
-        pass # FIXME
+        pass  # FIXME
+
 
 @dataclass(frozen=True)
 class Cricket(PetData):
     attack = 1
     health = 2
     tier = 1
+
     def effect(self):
-        pass # FIXME
+        pass  # FIXME
+
 
 @dataclass(frozen=True)
 class Apple(FoodData):
     def effect(self):
-        pass # FIXME
+        pass  # FIXME
 
 
 def cumulative_dict(source):
@@ -68,4 +70,3 @@ PACK1_FOOD = {
 
 PACK1_AVAILABLE_PETS = cumulative_dict(PACK1_PETS)
 PACK1_AVAILABLE_FOOD = cumulative_dict(PACK1_FOOD)
-    
