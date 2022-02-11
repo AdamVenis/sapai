@@ -31,7 +31,7 @@ class Buy:
         player = game.players[game.current_player_index]
         if self.source_index >= len(player.shop):
             return False
-        if player.money < 3: # FIXME
+        if player.money < 3:  # FIXME
             return False
 
         purchased = player.shop[self.source_index]
@@ -135,13 +135,13 @@ class Pet:
         self.data = pet_data
         self.food = None
         self.effect = empty_effect
-    
+
     def total_attack(self):
         return self.data.attack + self.copies - 1 + self.bonus_attack
 
     def total_health(self):
         return self.data.health + self.copies - 1 + self.bonus_health
-    
+
     def combine(self, other):
         self.copies += 1
 
@@ -153,12 +153,22 @@ class Pet:
             bonus_unit = True
         else:
             bonus_unit = False
-        
-        self.attack = self.data.attack + self.copies - 1 + max(self.bonus_attack, other.bonus_attack)
-        self.health = self.data.health + self.copies - 1 + max(self.bonus_health, other.bonus_health)
+
+        self.attack = (
+            self.data.attack
+            + self.copies
+            - 1
+            + max(self.bonus_attack, other.bonus_attack)
+        )
+        self.health = (
+            self.data.health
+            + self.copies
+            - 1
+            + max(self.bonus_health, other.bonus_health)
+        )
         if self.food is None:
             self.food = other.food
-        
+
         return bonus_unit
 
 
@@ -213,13 +223,13 @@ class Player:
             new_food_shop.append(Buyable(new_food))
 
         self.shop = new_pet_shop + new_food_shop
-    
+
     def add_bonus_unit(self, round):
         tier = current_tier(round)
         next_tier = min(6, tier + 1)
 
         new_pet = random.choice(pets.PACK1_PETS[next_tier])
-        self.shop.append(Buyable(new_pet)) # FIXME this should be before food
+        self.shop.append(Buyable(new_pet))  # FIXME this should be before food
 
 
 class Buyable:
@@ -238,6 +248,7 @@ class GameResult(enum.Enum):
     UNFINISHED = 0
     P1_WIN = 1
     P2_WIN = 2
+    DRAW = 3
 
 
 # main loop
@@ -257,6 +268,8 @@ class Game:
             self.result = GameResult.P1_WIN
         if self.p1.health <= 0:
             self.result = GameResult.P2_WIN
+        if self.round > 30:
+            self.result = GameResult.DRAW
 
     def start_round(self):
         for player in self.players:
@@ -277,7 +290,7 @@ class Game:
 
     def step(self, action):
         if self.verbose:
-            print('player', self.current_player_index, 'plays', action)
+            print("player", self.current_player_index, "plays", action)
         self.check_result()
         if self.result != GameResult.UNFINISHED:
             return self.result

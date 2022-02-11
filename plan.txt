@@ -2,7 +2,9 @@ PLAN
 
 1. create a git repo
     X creating a github access token (off screen)
+    
 2. structure the project (game, RL, etc)
+
 3. build out the game simulator
     X battle resolution skeleton
     X game loop skeleton
@@ -14,12 +16,14 @@ PLAN
     - finish battle resolution
     - finish actions
     - all the pets + effects
+    - better visualization of the game
+
 4. create and train a reinforcement learning agent
     X make random agent functional
-    - random vs random
-    - add heuristic to beat random
+    X add heuristic to beat random
     - add reinforcement learning agent to beat heuristic
         - check out tf-agents, stable-baselines, rllib
+
 5. profit
 
 CURRENTLY:

@@ -1,3 +1,4 @@
+import collections
 import random
 
 from game import *
@@ -29,8 +30,30 @@ class BuyAgent:
                 buy = Buy(i, j)
                 if buy.valid(game.current_player(), game):
                     return buy
-                    
+
         return EndTurn()
+
+
+class BuyStrongestAgent:
+    def get_action(self, game):
+        strongest_buy = None
+        strongest_pet_data = None
+
+        player = game.current_player()
+        for i in range(MAX_SHOP_SIZE):
+            for j in range(MAX_PETS):
+                buy = Buy(i, j)
+                if buy.valid(player, game) and isinstance(player.shop[i].data, PetData):
+                    pet_data = player.shop[i].data
+                    if (
+                        strongest_pet_data is None
+                        or pet_data.attack + pet_data.health
+                        > strongest_pet_data.attack + strongest_pet_data.health
+                    ):
+                        strongest_pet_data = pet_data
+                        strongest_buy = buy
+
+        return EndTurn() if strongest_buy is None else strongest_buy
 
 
 class EndTurnAgent:
@@ -47,6 +70,66 @@ class RandomAgent:
         ]
         return random.choice(valid_actions)
 
+
+class HeuristicAgent1:
+    def get_action(self, game):
+        # buy strongest pet, otherwise
+        # sell and rebuy stronger
+        # buy food if target has no food, otherwise
+
+        strongest_buy = None
+        strongest_pet_data = None
+
+        player = game.current_player()
+        for i in range(MAX_SHOP_SIZE):
+            for j in range(MAX_PETS):
+                buy = Buy(i, j)
+                if buy.valid(player, game) and isinstance(player.shop[i].data, PetData):
+                    pet_data = player.shop[i].data
+                    if (
+                        strongest_pet_data is None
+                        or pet_data.attack + pet_data.health
+                        > strongest_pet_data.attack + strongest_pet_data.health
+                    ):
+                        strongest_pet_data = pet_data
+                        strongest_buy = buy
+
+        if strongest_buy is not None:
+            return strongest_buy
+
+        if player.money >= 2:
+            weakest_owned_pet = None
+            weakest_owned_pet_index = None
+            for i, pet in enumerate(player.pets):
+                if (
+                    weakest_owned_pet is None
+                    or pet.total_attack() + pet.total_health()
+                    < weakest_owned_pet.total_attack()
+                    + weakest_owned_pet.total_health()
+                ):
+                    weakest_owned_pet = pet
+                    weakest_owned_pet_index = i
+
+            strongest_buyable_pet = None
+            for i, pet in enumerate(player.shop):
+                if not isinstance(pet.data, PetData):
+                    continue
+                if (
+                    strongest_buyable_pet is None
+                    or pet.data.attack + pet.data.health
+                    > strongest_buyable_pet.data.attack + strongest_buyable_pet.data.health
+                ):
+                    strongest_buyable_pet = pet
+
+            if (
+                weakest_owned_pet.total_attack() + weakest_owned_pet.total_health()
+                < strongest_buyable_pet.data.attack + strongest_buyable_pet.data.health
+            ):
+                return Sell(weakest_owned_pet_index)
+
+        return EndTurn()
+
+
 class Env:
     def __init__(self, **kwargs):
         self.kwargs = kwargs
@@ -57,14 +140,13 @@ class Env:
 
 
 def winrate(env, agents, num_episodes):
-    num_p1_wins = 0
+    results = collections.defaultdict(int)
     for _ in range(num_episodes):
         env.reset()
         result = play_game(env, agents)
-        if result == GameResult.P1_WIN:
-            num_p1_wins += 1
+        results[result] += 1
 
-    return num_p1_wins / num_episodes
+    return {k: v / num_episodes for k, v in results.items()}
 
 
 if __name__ == "__main__":
@@ -72,5 +154,7 @@ if __name__ == "__main__":
     # game = Game()
     # game.p1.pets = [Pet(pets.Ant()), Pet(pets.Cricket()), Pet(pets.Horse())]
     # game.p2.pets = [Pet(pets.Horse()), Pet(pets.Cricket())]
-    print(winrate(env, [BuyAgent(), RandomAgent()], num_episodes=100))
-    print(winrate(env, [RandomAgent(), EndTurnAgent()], num_episodes=100))
+    print(winrate(env, [HeuristicAgent1(), BuyStrongestAgent()], num_episodes=100)) # ~71%
+    print(winrate(env, [BuyStrongestAgent(), BuyAgent()], num_episodes=100)) # ~73%
+    print(winrate(env, [BuyAgent(), RandomAgent()], num_episodes=100)) # 99%
+    print(winrate(env, [RandomAgent(), EndTurnAgent()], num_episodes=100)) # 99%
