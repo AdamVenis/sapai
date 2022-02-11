@@ -8,12 +8,14 @@ PLAN
     X game loop skeleton
     X implementing refresh_shop
     X implement actions skeleton
+    X combine pets
+    X new pet on levelup
     - finish game loop
     - finish battle resolution
     - finish actions
     - all the pets + effects
-    - new pet on levelup
 4. create and train a reinforcement learning agent
+    X make random agent functional
     - random vs random
     - add heuristic to beat random
     - add reinforcement learning agent to beat heuristic
@@ -22,4 +24,3 @@ PLAN
 
 CURRENTLY:
 
-- make random agent functional

@@ -11,15 +11,6 @@ def empty_effect():
     pass
 
 
-# possible actions:
-# end turn
-# buy [pet/food] - requires index * target
-# reposition - requires from_index * to_index
-# sell pet - requires index
-# combine pet - requires index * target
-# roll
-
-
 class Action:
     def act(self):
         pass
@@ -40,20 +31,35 @@ class Buy:
         player = game.players[game.current_player_index]
         if self.source_index >= len(player.shop):
             return False
-        # invalid target
-        # not enough money
-        return True  # FIXME
+        if player.money < 3: # FIXME
+            return False
+
+        purchased = player.shop[self.source_index]
+        target_pet = player.pets[self.target_index]
+        if isinstance(purchased.data, PetData):
+            if target_pet is not None:
+                if target_pet.level == 3 or target_pet.data != purchased.data:
+                    return False
+        else:
+            if target_pet is None:
+                return False
+        return True
 
     def act(self, player, game):
         player = game.players[game.current_player_index]
         player.money -= 3  # FIXME
         purchased = player.shop[self.source_index]
+        target_pet = player.pets[self.target_index]
         if isinstance(purchased.data, PetData):
-            player.pets[self.target_index] = Pet(purchased.data)
-            # add a pet in target location FIXME
+            new_pet = Pet(purchased.data)
+            if target_pet is not None:
+                bonus_unit = target_pet.combine(new_pet)
+                if bonus_unit:
+                    player.add_bonus_unit(game.round)
+            else:
+                player.pets[self.target_index] = new_pet
         else:
-            # attach food to pet in target location FIXME
-            pass
+            target_pet.food = purchased.data
 
 
 @dataclass
@@ -112,23 +118,61 @@ class Combine:
         return pet1.data == pet2.data
 
     def act(self, player, game):
-        player.pets[self.source_index] = None  # FIXME
+        target_pet = player.pets[self.target_index]
+        bonus_unit = target_pet.combine(player.pets[self.source_index])
+        if bonus_unit:
+            player.add_bonus_unit(game.round)
+        player.pets[self.source_index] = None
 
 
-# add some pets here (there are 80 lol)
 class Pet:
     def __init__(self, pet_data):
-        self.attack = pet_data.attack
-        self.health = pet_data.health
+        self.bonus_attack = 0
+        self.bonus_health = 0
         self.tier = pet_data.tier
+        self.level = 1
+        self.copies = 1
         self.data = pet_data
         self.food = None
         self.effect = empty_effect
+    
+    def total_attack(self):
+        return self.data.attack + self.copies - 1 + self.bonus_attack
+
+    def total_health(self):
+        return self.data.health + self.copies - 1 + self.bonus_health
+    
+    def combine(self, other):
+        self.copies += 1
+
+        if self.copies == 3:
+            self.level = 2
+            bonus_unit = True
+        elif self.copies == 6:
+            self.level = 3
+            bonus_unit = True
+        else:
+            bonus_unit = False
+        
+        self.attack = self.data.attack + self.copies - 1 + max(self.bonus_attack, other.bonus_attack)
+        self.health = self.data.health + self.copies - 1 + max(self.bonus_health, other.bonus_health)
+        if self.food is None:
+            self.food = other.food
+        
+        return bonus_unit
 
 
 class Food:
     def __init__(self, food_data):
         self.food_data = food_data
+
+
+class BattlePet:
+    def __init__(self, pet):
+        self.attack = pet.total_attack()
+        self.health = pet.total_health()
+        self.data = pet.data
+        self.food = pet.food
 
 
 class Player:
@@ -139,7 +183,7 @@ class Player:
         self.health = health
 
     def get_pets_for_battle(self):
-        return [copy.copy(pet) for pet in self.pets if pet is not None]
+        return [BattlePet(pet) for pet in self.pets if pet is not None]
 
     def refresh_shop(self, round):
         # seems to be uniform with replacement among all available pets
@@ -169,6 +213,13 @@ class Player:
             new_food_shop.append(Buyable(new_food))
 
         self.shop = new_pet_shop + new_food_shop
+    
+    def add_bonus_unit(self, round):
+        tier = current_tier(round)
+        next_tier = min(6, tier + 1)
+
+        new_pet = random.choice(pets.PACK1_PETS[next_tier])
+        self.shop.append(Buyable(new_pet)) # FIXME this should be before food
 
 
 class Buyable:
@@ -191,7 +242,9 @@ class GameResult(enum.Enum):
 
 # main loop
 class Game:
-    def __init__(self):
+    def __init__(self, verbose=False):
+        self.verbose = verbose
+
         self.p1, self.p2 = Player(10), Player(10)
         self.players = [self.p1, self.p2]
         self.round = 1
@@ -212,7 +265,8 @@ class Game:
 
     def finish_round(self):
         battle_result = resolve_battle(self.p1, self.p2)
-        # print(self.round, self.p1.health, self.p2.health, battle_result)
+        if self.verbose:
+            print(self.round, self.p1.health, self.p2.health, battle_result)
         if battle_result == BattleResult.WIN:
             lose_round(self.p2, self.round)
         elif battle_result == BattleResult.LOSS:
@@ -222,6 +276,8 @@ class Game:
         return self.players[self.current_player_index]
 
     def step(self, action):
+        if self.verbose:
+            print('player', self.current_player_index, 'plays', action)
         self.check_result()
         if self.result != GameResult.UNFINISHED:
             return self.result
