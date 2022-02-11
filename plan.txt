@@ -2,7 +2,7 @@ PLAN
 
 1. create a git repo
     X creating a github access token (off screen)
-    
+
 2. structure the project (game, RL, etc)
 
 3. build out the game simulator
@@ -12,9 +12,10 @@ PLAN
     X implement actions skeleton
     X combine pets
     X new pet on levelup
-    - finish game loop
-    - finish battle resolution
-    - finish actions
+    X finish actions
+    X finish game loop
+    X finish battle resolution
+    X ant effect
     - all the pets + effects
     - better visualization of the game
 
@@ -27,4 +28,5 @@ PLAN
 5. profit
 
 CURRENTLY:
+
 

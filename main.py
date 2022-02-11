@@ -149,12 +149,25 @@ def winrate(env, agents, num_episodes):
     return {k: v / num_episodes for k, v in results.items()}
 
 
+def test_ant():
+    game = Game()
+    game.p1.pets = [Pet(pets.Beaver()), Pet(pets.Ant())]
+    game.p2.pets = [Pet(pets.Horse()), Pet(pets.Cricket())]
+    print(resolve_battle(game.p1, game.p2, verbose=True))
+
+
+def test_hedgehog():
+    # 1) faint a hedgehog outside of battle with a sleeping pill
+    # 2) damage two level 1 fish from 2/3 to 2/1 each
+    # 3) combine them. => 3/4? or a 3/2?
+    pass
+
+
 if __name__ == "__main__":
     env = Env(verbose=False)
-    # game = Game()
-    # game.p1.pets = [Pet(pets.Ant()), Pet(pets.Cricket()), Pet(pets.Horse())]
-    # game.p2.pets = [Pet(pets.Horse()), Pet(pets.Cricket())]
-    print(winrate(env, [HeuristicAgent1(), BuyStrongestAgent()], num_episodes=100)) # ~71%
-    print(winrate(env, [BuyStrongestAgent(), BuyAgent()], num_episodes=100)) # ~73%
-    print(winrate(env, [BuyAgent(), RandomAgent()], num_episodes=100)) # 99%
-    print(winrate(env, [RandomAgent(), EndTurnAgent()], num_episodes=100)) # 99%
+    test_ant()
+    # print(winrate(env, [HeuristicAgent1(), BuyStrongestAgent()], num_episodes=100)) # ~71%
+    # print(winrate(env, [BuyStrongestAgent(), BuyAgent()], num_episodes=100)) # ~73%
+    # print(winrate(env, [BuyAgent(), RandomAgent()], num_episodes=100)) # 99%
+    # print(winrate(env, [RandomAgent(), EndTurnAgent()], num_episodes=100)) # 99%
+

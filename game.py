@@ -180,9 +180,26 @@ class Food:
 class BattlePet:
     def __init__(self, pet):
         self.attack = pet.total_attack()
+        self.bonus_attack = 0
         self.health = pet.total_health()
+        self.bonus_health = 0
         self.data = pet.data
         self.food = pet.food
+    
+    def total_attack(self):
+        return self.attack + self.bonus_attack
+    
+    def total_health(self):
+        return self.health + self.bonus_health
+    
+    def handle_event(self, event, source, friends, enemies, **kwargs):
+        self.data.handle_event(self, event, source, friends, enemies, **kwargs)
+        if self.food is not None:
+            self.food.handle_event(self, event, source, friends, enemies, **kwargs)
+        
+    def __repr__(self):
+        return f"{self.data.__class__.__name__}({self.total_attack()}, {self.total_health()})"
+
 
 
 class Player:
@@ -251,7 +268,6 @@ class GameResult(enum.Enum):
     DRAW = 3
 
 
-# main loop
 class Game:
     def __init__(self, verbose=False):
         self.verbose = verbose
@@ -330,16 +346,27 @@ def lose_round(player, round):
         player.health -= 3
 
 
-def resolve_battle(p1, p2):
+def handle_event(event, source, friends, enemies, **kwargs):
+    source.handle_event(event, source, friends, enemies, **kwargs)
+    for pet in friends:
+        pet.handle_event(event, source, friends, enemies, **kwargs)
+
+
+def resolve_battle(p1, p2, verbose=False):
     p1_pets = p1.get_pets_for_battle()
     p2_pets = p2.get_pets_for_battle()
     while p1_pets and p2_pets:
-        p1_pets[-1].health -= p2_pets[-1].attack
-        p2_pets[-1].health -= p1_pets[-1].attack
-        if p1_pets[-1].health <= 0:
-            p1_pets.pop()
-        if p2_pets[-1].health <= 0:
-            p2_pets.pop()
+        if verbose:
+            print('p1:', p1_pets)
+            print('p2:', p2_pets)
+        p1_pets[-1].bonus_health -= p2_pets[-1].total_attack()
+        p2_pets[-1].bonus_health -= p1_pets[-1].total_attack()
+        if p1_pets[-1].total_health() <= 0:
+            source = p1_pets.pop()
+            handle_event(Event.FAINT, source, p1_pets, p2_pets, index=len(p1_pets) - 1)
+        if p2_pets[-1].total_health() <= 0:
+            source = p2_pets.pop()
+            handle_event(Event.FAINT, source,  p1_pets, p2_pets, index=len(p1_pets) - 1)
 
     if p1_pets:
         return BattleResult.WIN

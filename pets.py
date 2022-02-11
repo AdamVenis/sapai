@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import collections
+import random
 from common import *
 
 
@@ -9,8 +10,12 @@ class Ant(PetData):
     health = 1
     tier = 1
 
-    def effect(self):
-        pass  # FIXME
+    @staticmethod
+    def handle_event(self, event, source, friends, enemies, **kwargs):
+        if event == Event.FAINT and source == self:
+            friend = random.choice(friends)
+            friend.bonus_attack += 2
+            friend.bonus_health += 1
 
 
 @dataclass(frozen=True)
@@ -19,8 +24,12 @@ class Horse(PetData):
     health = 1
     tier = 1
 
-    def effect(self):
-        pass  # FIXME
+
+@dataclass(frozen=True)
+class Beaver(PetData):
+    attack = 2
+    health = 2
+    tier = 1
 
 
 @dataclass(frozen=True)
@@ -29,8 +38,19 @@ class Cricket(PetData):
     health = 2
     tier = 1
 
-    def effect(self):
-        pass  # FIXME
+    @staticmethod
+    def handle_event(self, event, source, friends, enemies, index, **kwargs):
+        if event == Event.FAINT and source == self:
+            # if there is room, append new 
+            # friends.append() FIXME
+            pass
+
+
+@dataclass(frozen=True)
+class ZombieCricket(PetData):
+    attack = 1
+    health = 1
+    tier = 1
 
 
 @dataclass(frozen=True)
@@ -131,7 +151,7 @@ def cumulative_dict(source):
 
 
 PACK1_PETS = {
-    1: [Ant(), Cricket(), Horse()],
+    1: [Ant(), Beaver(), Cricket(), Horse()],
     2: [Swan()],
     3: [Giraffe()],
     4: [Deer()],
