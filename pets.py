@@ -11,13 +11,14 @@ class Ant(PetData):
     tier = 1
 
     @staticmethod
-    def handle_event(self, event, source, player, game, **kwargs):
-        if event == Event.FAINT and source == self:
-            friends = kwargs['friends']
-            if friends:
-                friend = random.choice(friends)
-                friend.bonus_attack += 2
-                friend.bonus_health += 1
+    def handle_event(self, event, **kwargs):
+        if event == Event.FAINT:
+            if kwargs['source'] == self:
+                friends = [pet for pet in kwargs['friends'] if pet is not None]
+                if friends:
+                    friend = random.choice(friends)
+                    friend.bonus_attack += 2
+                    friend.bonus_health += 1
 
 
 @dataclass(frozen=True)
@@ -27,10 +28,13 @@ class Beaver(PetData):
     tier = 1
 
     @staticmethod
-    def handle_event(self, event, source, player, game, **kwargs):
-        if event == Event.SELL and source == self:
-            friend = random.choice(friends)
-            friend.bonus_health += 1
+    def handle_event(self, event, **kwargs):
+        if event == Event.SELL:
+            if kwargs['source'] == self:
+                friends = [pet for pet in kwargs['friends'] if pet is not None]
+                if friends:
+                    friend = random.choice(friends)
+                    friend.bonus_health += 1
 
 
 @dataclass(frozen=True)
@@ -40,12 +44,13 @@ class Cricket(PetData):
     tier = 1
 
     @staticmethod
-    def handle_event(self, event, source, player, game, **kwargs):
-        if event == Event.FAINT and source == self:
-            index = kwargs['index']
-            # if there is room, append new 
-            # friends.append() FIXME
-            pass
+    def handle_event(self, event, **kwargs):
+        if event == Event.FAINT:
+            if kwargs['source'] == self:
+                index = kwargs['index']
+                # if there is room, append new 
+                # friends.append() FIXME
+                pass
 
 
 @dataclass(frozen=True)
@@ -67,18 +72,15 @@ class Fish(PetData):
     tier = 1
 
     @staticmethod
-    def handle_event(self, event, source, player, game, **kwargs):
-        if event == Event.LEVEL_UP and source == self:
-            for friend in player.pets:
-                if friend is None:
-                    continue
-                if self.level == 2:
-                    friend.bonus_attack += 1
-                    friend.bonus_health += 1
-                else:
-                    friend.bonus_attack += 2
-                    friend.bonus_health += 2
-
+    def handle_event(self, event, **kwargs):
+        if event == Event.LEVEL_UP:
+            if kwargs['source'] == self:
+                for friend in kwargs['friends']:
+                    if friend is None:
+                        continue
+                    buff = self.level - 1
+                    friend.bonus_attack += buff
+                    friend.bonus_health += buff
 
 
 @dataclass(frozen=True)
@@ -86,6 +88,21 @@ class Horse(PetData):
     attack = 2
     health = 1
     tier = 1
+
+
+@dataclass(frozen=True)
+class Mosquito(PetData):
+    attack = 2
+    health = 2
+    tier = 1
+
+    @staticmethod
+    def handle_event(self, event, **kwargs):
+        if event == Event.START_BATTLE:
+            enemies = kwargs['enemies']
+            for _ in range(self.level):
+                enemy = random.choice(enemies)
+                enemy.take_damage(1)
 
 
 @dataclass(frozen=True)

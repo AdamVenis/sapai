@@ -72,11 +72,12 @@ class RandomAgent:
         return random.choice(valid_actions)
 
 
-class HeuristicAgent1:
+class HeuristicAgent:
     def get_action(self, game):
         # buy strongest pet, otherwise
         # sell and rebuy stronger
-        # buy food if target has no food, otherwise
+        # buy food if target has no food (FIXME), otherwise 
+        # roll (FIXME)
 
         strongest_buy = None
         strongest_pet_data = None
@@ -154,14 +155,29 @@ def test_ant():
     game = Game()
     game.p1.pets = [Pet(pets.Beaver()), Pet(pets.Ant())]
     game.p2.pets = [Pet(pets.Horse()), Pet(pets.Cricket())]
-    assert game.resolve_battle(game.p1, game.p2) == BattleResult.P1_WIN
+    assert game.resolve_battle() == BattleResult.P1_WIN
 
 
-def test_hedgehog():
+def test_hedgehog_combine():
     # 1) faint a hedgehog outside of battle with a sleeping pill
     # 2) damage two level 1 fish from 2/3 to 2/1 each
     # 3) combine them. => 3/4? or a 3/2?
-    pass
+    game = Game()
+    game.p1.pets[:2] = [Pet(pets.Fish()), Pet(pets.Fish()), Pet(pets.Hedgehog())]
+    game.p1.shop[-1] = pets.SleepingPill()
+    game.step(Buy(len(game.p1.shop) - 1, 2))
+    game.step(Combine(1, 0))
+    assert game.p1.pets[0].total_health() == 4
+
+
+def test_dolphin_hedgehog():
+    # assume attack order is dolphin -> croc -> hedgehog, but dolphin kills hedgehog.
+    # does hedgehog faint effect go on the top of the stack, pre-empting the croc?
+    game = Game()
+    game.p1.pets[:2] = [Pet(pets.Crocodile()), Pet(pets.Mosquito())]
+    game.p1.shop[:2] = [Buyable(pets.Hedgehog()), Buyable(pets.Horse())]
+    assert game.resolve_battle() == BattleResult.P1_WIN
+
 
 def test_fish():
     game = Game()
@@ -171,8 +187,14 @@ def test_fish():
     game.step(Buy(1, 1))
     assert str(game.p1.pets) == '[Beaver(3, 3), Fish(5, 6), None, None, None]'
 
+def test_mosquito():
+    game = Game()
+    game.p1.pets[0] = Pet(pets.Mosquito())
+    game.p2.pets[0] = Pet(pets.Fish())
+    assert game.resolve_battle() == BattleResult.DRAW
+
 def evaluate_winrates(num_episodes):
-    print(winrate(env, [HeuristicAgent1(), BuyStrongestAgent()], num_episodes)) # ~71%
+    print(winrate(env, [HeuristicAgent(), BuyStrongestAgent()], num_episodes)) # ~71%
     print(winrate(env, [BuyStrongestAgent(), BuyAgent()], num_episodes)) # ~65%
     print(winrate(env, [BuyAgent(), RandomAgent()], num_episodes)) # 99%
     print(winrate(env, [RandomAgent(), EndTurnAgent()], num_episodes)) # 99%
@@ -181,7 +203,7 @@ if __name__ == "__main__":
     env = Env(verbose=False)
     test_ant()
     test_fish()
-    test_hedgehog()
+    test_mosquito()
 
-    evaluate_winrates(num_episodes=1000)
+    evaluate_winrates(num_episodes=100)
 

@@ -27,9 +27,10 @@ PLAN
 
 5. profit
 
-CURRENTLY:
+CURRENT TASK:
 - tier 1 pets
-DONE: Ant Beaver Fish
-NOT DONE: Duck Mosquito Otter Pig Horse Cricket
+    DONE: Ant Beaver Fish Mosquito
+    NOT DONE: Duck Otter Pig Horse Cricket
+    CURRENTLY: 
 
 

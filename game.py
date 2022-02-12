@@ -55,7 +55,7 @@ class Buy:
             if target_pet is not None:
                 level_up = target_pet.combine(new_pet)
                 if level_up:
-                    target_pet.data.handle_event(target_pet, Event.LEVEL_UP, target_pet, player, game)
+                    target_pet.data.handle_event(target_pet, Event.LEVEL_UP, source=target_pet, friends=player.pets)
                     player.add_bonus_unit(game.round)
             else:
                 player.pets[self.target_index] = new_pet
@@ -198,6 +198,7 @@ class BattlePet:
         self.bonus_attack = 0
         self.health = pet.total_health()
         self.bonus_health = 0
+        self.level = pet.level
         self.data = pet.data
         self.food = pet.food
     
@@ -207,10 +208,14 @@ class BattlePet:
     def total_health(self):
         return self.health + self.bonus_health
     
-    def handle_event(self, event, source, player, game, **kwargs):
-        self.data.handle_event(self, event, source, player, game, **kwargs)
+    def take_damage(self, damage):
+        self.bonus_health -= damage
+        # FIXME - this needs to trigger a faint if appropriate
+    
+    def handle_event(self, event, **kwargs):
+        self.data.handle_event(self, event, **kwargs)
         if self.food is not None:
-            self.food.handle_event(self, event, source, player, game, **kwargs)
+            self.food.handle_event(self, event, **kwargs)
         
     def __repr__(self):
         return f"{self.data.__class__.__name__}({self.total_attack()}, {self.total_health()})"
@@ -307,7 +312,7 @@ class Game:
             player.money = 10
 
     def finish_round(self):
-        battle_result = self.resolve_battle(self.p1, self.p2)
+        battle_result = self.resolve_battle()
         if self.verbose:
             print(self.round, self.p1.health, self.p2.health, battle_result)
         if battle_result == BattleResult.P1_WIN:
@@ -315,26 +320,34 @@ class Game:
         elif battle_result == BattleResult.P2_WIN:
             lose_round(self.p1, self.round)
 
-    def resolve_battle(self, p1, p2):
-        p1_pets = p1.get_pets_for_battle()
-        p2_pets = p2.get_pets_for_battle()
+    def resolve_battle(self):
+        p1_pets = self.p1.get_pets_for_battle()
+        p2_pets = self.p2.get_pets_for_battle()
+
+        # FIXME go in decreasing order of attack
+        for pet in p1_pets:  
+            pet.handle_event(Event.START_BATTLE, friends=p1_pets, enemies=p2_pets)
+
+        for pet in p2_pets:  
+            pet.handle_event(Event.START_BATTLE, friends=p2_pets, enemies=p1_pets)
+
         while p1_pets and p2_pets:
             if self.verbose:
                 print('p1:', p1_pets)
                 print('p2:', p2_pets)
-            p1_pets[-1].bonus_health -= p2_pets[-1].total_attack()
-            p2_pets[-1].bonus_health -= p1_pets[-1].total_attack()
+            p1_pets[-1].take_damage(p2_pets[-1].total_attack())
+            p2_pets[-1].take_damage(p1_pets[-1].total_attack())
 
             if p1_pets[-1].total_health() <= 0:
                 source = p1_pets.pop()
-                source.handle_event(Event.FAINT, source, p1, self, index=len(p1_pets), friends=p1_pets)
+                source.handle_event(Event.FAINT, source=source, index=len(p1_pets), friends=p1_pets)
                 for pet in p1_pets:
-                    pet.handle_event(Event.FAINT, source, p1, self, index=len(p1_pets), friends=p1_pets)
+                    pet.handle_event(Event.FAINT, source=source, index=len(p1_pets), friends=p1_pets)
             if p2_pets[-1].total_health() <= 0:
                 source = p2_pets.pop()
-                source.handle_event(Event.FAINT, source, p1, self, index=len(p2_pets), friends=p2_pets)
+                source.handle_event(Event.FAINT, source=source, index=len(p2_pets), friends=p2_pets)
                 for pet in p2_pets:
-                    pet.handle_event(Event.FAINT, source, p1, self, index=len(p2_pets), friends=p2_pets)
+                    pet.handle_event(Event.FAINT, source=source, index=len(p2_pets), friends=p2_pets)
 
         if p1_pets:
             return BattleResult.P1_WIN

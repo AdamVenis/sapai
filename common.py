@@ -19,11 +19,11 @@ class Event(enum.Enum):
 
 class PetData:
     @staticmethod
-    def handle_event(self, event, source, player, game, **kwargs):
+    def handle_event(self, event, **kwargs):
         pass
 
 
 class FoodData:
     @staticmethod
-    def handle_event(self, event, source, player, game, **kwargs):
+    def handle_event(self, event, **kwargs):
         pass
