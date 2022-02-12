@@ -28,5 +28,8 @@ PLAN
 5. profit
 
 CURRENTLY:
+- tier 1 pets
+DONE: Ant Beaver Fish
+NOT DONE: Duck Mosquito Otter Pig Horse Cricket
 
 

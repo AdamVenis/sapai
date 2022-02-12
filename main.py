@@ -10,6 +10,7 @@ ALL_ACTIONS = (
     + [Reposition(i, j) for i in range(MAX_PETS) for j in range(MAX_PETS)]
     + [Sell(i) for i in range(MAX_PETS)]
     + [Combine(i, j) for i in range(MAX_PETS) for j in range(MAX_PETS)]
+    + [ToggleFreeze(i) for i in range(MAX_SHOP_SIZE)]
 )
 # CONSIDER: a prior that decreases the probability of doing endturn, reposition, or sell
 
@@ -153,7 +154,7 @@ def test_ant():
     game = Game()
     game.p1.pets = [Pet(pets.Beaver()), Pet(pets.Ant())]
     game.p2.pets = [Pet(pets.Horse()), Pet(pets.Cricket())]
-    print(resolve_battle(game.p1, game.p2, verbose=True))
+    assert game.resolve_battle(game.p1, game.p2) == BattleResult.P1_WIN
 
 
 def test_hedgehog():
@@ -162,12 +163,25 @@ def test_hedgehog():
     # 3) combine them. => 3/4? or a 3/2?
     pass
 
+def test_fish():
+    game = Game()
+    game.p1.pets[:2] = [Pet(pets.Beaver()), Pet(pets.Fish())]
+    game.p1.shop[:2] = [Buyable(pets.Fish()), Buyable(pets.Fish())]
+    game.step(Buy(0, 1))
+    game.step(Buy(1, 1))
+    assert str(game.p1.pets) == '[Beaver(3, 3), Fish(5, 6), None, None, None]'
+
+def evaluate_winrates(num_episodes):
+    print(winrate(env, [HeuristicAgent1(), BuyStrongestAgent()], num_episodes)) # ~71%
+    print(winrate(env, [BuyStrongestAgent(), BuyAgent()], num_episodes)) # ~65%
+    print(winrate(env, [BuyAgent(), RandomAgent()], num_episodes)) # 99%
+    print(winrate(env, [RandomAgent(), EndTurnAgent()], num_episodes)) # 99%
 
 if __name__ == "__main__":
     env = Env(verbose=False)
     test_ant()
-    # print(winrate(env, [HeuristicAgent1(), BuyStrongestAgent()], num_episodes=100)) # ~71%
-    # print(winrate(env, [BuyStrongestAgent(), BuyAgent()], num_episodes=100)) # ~73%
-    # print(winrate(env, [BuyAgent(), RandomAgent()], num_episodes=100)) # 99%
-    # print(winrate(env, [RandomAgent(), EndTurnAgent()], num_episodes=100)) # 99%
+    test_fish()
+    test_hedgehog()
+
+    evaluate_winrates(num_episodes=1000)
 

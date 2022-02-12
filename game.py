@@ -53,8 +53,9 @@ class Buy:
         if isinstance(purchased.data, PetData):
             new_pet = Pet(purchased.data)
             if target_pet is not None:
-                bonus_unit = target_pet.combine(new_pet)
-                if bonus_unit:
+                level_up = target_pet.combine(new_pet)
+                if level_up:
+                    target_pet.data.handle_event(target_pet, Event.LEVEL_UP, target_pet, player, game)
                     player.add_bonus_unit(game.round)
             else:
                 player.pets[self.target_index] = new_pet
@@ -119,10 +120,21 @@ class Combine:
 
     def act(self, player, game):
         target_pet = player.pets[self.target_index]
-        bonus_unit = target_pet.combine(player.pets[self.source_index])
-        if bonus_unit:
+        level_up = target_pet.combine(player.pets[self.source_index])
+        if level_up:
             player.add_bonus_unit(game.round)
         player.pets[self.source_index] = None
+
+
+@dataclass
+class ToggleFreeze:
+    index: int
+
+    def valid(self, player, game):
+        return 0 <= self.index < len(player.shop)
+
+    def act(self, player, game):
+        player.shop[self.index].frozen ^= True  # fanciest toggle in the west
 
 
 class Pet:
@@ -147,12 +159,12 @@ class Pet:
 
         if self.copies == 3:
             self.level = 2
-            bonus_unit = True
+            level_up = True
         elif self.copies == 6:
             self.level = 3
-            bonus_unit = True
+            level_up = True
         else:
-            bonus_unit = False
+            level_up = False
 
         self.attack = (
             self.data.attack
@@ -169,7 +181,10 @@ class Pet:
         if self.food is None:
             self.food = other.food
 
-        return bonus_unit
+        return level_up
+
+    def __repr__(self):
+        return f"{self.data.__class__.__name__}({self.total_attack()}, {self.total_health()})"
 
 
 class Food:
@@ -192,14 +207,13 @@ class BattlePet:
     def total_health(self):
         return self.health + self.bonus_health
     
-    def handle_event(self, event, source, friends, enemies, **kwargs):
-        self.data.handle_event(self, event, source, friends, enemies, **kwargs)
+    def handle_event(self, event, source, player, game, **kwargs):
+        self.data.handle_event(self, event, source, player, game, **kwargs)
         if self.food is not None:
-            self.food.handle_event(self, event, source, friends, enemies, **kwargs)
+            self.food.handle_event(self, event, source, player, game, **kwargs)
         
     def __repr__(self):
         return f"{self.data.__class__.__name__}({self.total_attack()}, {self.total_health()})"
-
 
 
 class Player:
@@ -256,9 +270,9 @@ class Buyable:
 
 
 class BattleResult(enum.Enum):
-    WIN = 1
+    P1_WIN = 1
     DRAW = 2
-    LOSS = 3
+    P2_WIN = 3
 
 
 class GameResult(enum.Enum):
@@ -293,13 +307,41 @@ class Game:
             player.money = 10
 
     def finish_round(self):
-        battle_result = resolve_battle(self.p1, self.p2)
+        battle_result = self.resolve_battle(self.p1, self.p2)
         if self.verbose:
             print(self.round, self.p1.health, self.p2.health, battle_result)
-        if battle_result == BattleResult.WIN:
+        if battle_result == BattleResult.P1_WIN:
             lose_round(self.p2, self.round)
-        elif battle_result == BattleResult.LOSS:
+        elif battle_result == BattleResult.P2_WIN:
             lose_round(self.p1, self.round)
+
+    def resolve_battle(self, p1, p2):
+        p1_pets = p1.get_pets_for_battle()
+        p2_pets = p2.get_pets_for_battle()
+        while p1_pets and p2_pets:
+            if self.verbose:
+                print('p1:', p1_pets)
+                print('p2:', p2_pets)
+            p1_pets[-1].bonus_health -= p2_pets[-1].total_attack()
+            p2_pets[-1].bonus_health -= p1_pets[-1].total_attack()
+
+            if p1_pets[-1].total_health() <= 0:
+                source = p1_pets.pop()
+                source.handle_event(Event.FAINT, source, p1, self, index=len(p1_pets), friends=p1_pets)
+                for pet in p1_pets:
+                    pet.handle_event(Event.FAINT, source, p1, self, index=len(p1_pets), friends=p1_pets)
+            if p2_pets[-1].total_health() <= 0:
+                source = p2_pets.pop()
+                source.handle_event(Event.FAINT, source, p1, self, index=len(p2_pets), friends=p2_pets)
+                for pet in p2_pets:
+                    pet.handle_event(Event.FAINT, source, p1, self, index=len(p2_pets), friends=p2_pets)
+
+        if p1_pets:
+            return BattleResult.P1_WIN
+        elif p2_pets:
+            return BattleResult.P2_WIN
+        else:
+            return BattleResult.DRAW
 
     def current_player(self):
         return self.players[self.current_player_index]
@@ -344,33 +386,3 @@ def lose_round(player, round):
         player.health -= 2
     else:
         player.health -= 3
-
-
-def handle_event(event, source, friends, enemies, **kwargs):
-    source.handle_event(event, source, friends, enemies, **kwargs)
-    for pet in friends:
-        pet.handle_event(event, source, friends, enemies, **kwargs)
-
-
-def resolve_battle(p1, p2, verbose=False):
-    p1_pets = p1.get_pets_for_battle()
-    p2_pets = p2.get_pets_for_battle()
-    while p1_pets and p2_pets:
-        if verbose:
-            print('p1:', p1_pets)
-            print('p2:', p2_pets)
-        p1_pets[-1].bonus_health -= p2_pets[-1].total_attack()
-        p2_pets[-1].bonus_health -= p1_pets[-1].total_attack()
-        if p1_pets[-1].total_health() <= 0:
-            source = p1_pets.pop()
-            handle_event(Event.FAINT, source, p1_pets, p2_pets, index=len(p1_pets) - 1)
-        if p2_pets[-1].total_health() <= 0:
-            source = p2_pets.pop()
-            handle_event(Event.FAINT, source,  p1_pets, p2_pets, index=len(p1_pets) - 1)
-
-    if p1_pets:
-        return BattleResult.WIN
-    elif p2_pets:
-        return BattleResult.LOSS
-    else:
-        return BattleResult.DRAW
