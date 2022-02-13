@@ -76,7 +76,7 @@ class HeuristicAgent:
     def get_action(self, game):
         # buy strongest pet, otherwise
         # sell and rebuy stronger
-        # buy food if target has no food (FIXME), otherwise 
+        # buy food if target has no food (FIXME), otherwise
         # roll (FIXME)
 
         strongest_buy = None
@@ -119,7 +119,8 @@ class HeuristicAgent:
                 if (
                     strongest_buyable_pet is None
                     or pet.data.attack + pet.data.health
-                    > strongest_buyable_pet.data.attack + strongest_buyable_pet.data.health
+                    > strongest_buyable_pet.data.attack
+                    + strongest_buyable_pet.data.health
                 ):
                     strongest_buyable_pet = pet
 
@@ -153,9 +154,17 @@ def winrate(env, agents, num_episodes):
 
 def test_ant():
     game = Game()
-    game.p1.pets = [Pet(pets.Beaver()), Pet(pets.Ant())]
-    game.p2.pets = [Pet(pets.Horse()), Pet(pets.Cricket())]
+    game.p1.pets[:2] = [Pet(pets.Beaver()), Pet(pets.Ant())]
+    game.p2.pets[:2] = [Pet(pets.Horse()), Pet(pets.Horse())]
     assert game.resolve_battle() == BattleResult.P1_WIN
+
+
+def test_duck():
+    game = Game()
+    game.p1.pets[0] = Pet(pets.Duck())
+    game.p1.shop[0] = Pet(pets.Pig())
+    game.step(Sell(0))
+    assert game.p1.shop[0].total_health() == 2
 
 
 def test_hedgehog_combine():
@@ -185,7 +194,22 @@ def test_fish():
     game.p1.shop[:2] = [Buyable(pets.Fish()), Buyable(pets.Fish())]
     game.step(Buy(0, 1))
     game.step(Buy(1, 1))
-    assert str(game.p1.pets) == '[Beaver(3, 3), Fish(5, 6), None, None, None]'
+    assert str(game.p1.pets) == "[Beaver(3, 3), Fish(5, 6), None, None, None]"
+
+
+def test_pig():
+    game = Game()
+    game.p1.pets[:2] = [Pet(pets.Pig())]
+    game.step(Sell(0))
+    assert game.p1.money == 12
+
+
+def test_beaver():
+    game = Game()
+    game.p1.pets[:2] = [Pet(pets.Beaver()), Pet(pets.Pig())]
+    game.step(Sell(0))
+    assert game.p1.pets[1].total_health() == 2
+
 
 def test_mosquito():
     game = Game()
@@ -193,17 +217,29 @@ def test_mosquito():
     game.p2.pets[0] = Pet(pets.Fish())
     assert game.resolve_battle() == BattleResult.DRAW
 
+
+def test_cricket():
+    game = Game()
+    game.p1.pets[0] = Pet(pets.Cricket())
+    game.p2.pets[0] = Pet(pets.Pig())
+    assert game.resolve_battle() == BattleResult.P1_WIN
+
+
 def evaluate_winrates(num_episodes):
-    print(winrate(env, [HeuristicAgent(), BuyStrongestAgent()], num_episodes)) # ~71%
-    print(winrate(env, [BuyStrongestAgent(), BuyAgent()], num_episodes)) # ~65%
-    print(winrate(env, [BuyAgent(), RandomAgent()], num_episodes)) # 99%
-    print(winrate(env, [RandomAgent(), EndTurnAgent()], num_episodes)) # 99%
+    print(winrate(env, [HeuristicAgent(), BuyStrongestAgent()], num_episodes))  # ~71%
+    print(winrate(env, [BuyStrongestAgent(), BuyAgent()], num_episodes))  # ~65%
+    print(winrate(env, [BuyAgent(), RandomAgent()], num_episodes))  # 99%
+    print(winrate(env, [RandomAgent(), EndTurnAgent()], num_episodes))  # 99%
+
 
 if __name__ == "__main__":
     env = Env(verbose=False)
     test_ant()
+    test_beaver()
+    test_cricket()
+    test_duck()
     test_fish()
+    test_pig()
     test_mosquito()
 
     evaluate_winrates(num_episodes=100)
-

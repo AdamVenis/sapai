@@ -13,12 +13,12 @@ class Ant(PetData):
     @staticmethod
     def handle_event(self, event, **kwargs):
         if event == Event.FAINT:
-            if kwargs['source'] == self:
-                friends = [pet for pet in kwargs['friends'] if pet is not None]
+            if kwargs["source"] == self:
+                friends = [pet for pet in kwargs["friends"] if pet is not None]
                 if friends:
                     friend = random.choice(friends)
-                    friend.bonus_attack += 2
-                    friend.bonus_health += 1
+                    friend.bonus_attack += 2 * self.level
+                    friend.bonus_health += 1 * self.level
 
 
 @dataclass(frozen=True)
@@ -30,11 +30,14 @@ class Beaver(PetData):
     @staticmethod
     def handle_event(self, event, **kwargs):
         if event == Event.SELL:
-            if kwargs['source'] == self:
-                friends = [pet for pet in kwargs['friends'] if pet is not None]
-                if friends:
-                    friend = random.choice(friends)
-                    friend.bonus_health += 1
+            if kwargs["source"] == self:
+                friends = [pet for pet in kwargs["friends"] if pet is not None]
+                if len(friends) < 2:
+                    for friend in friends:
+                        friend.bonus_health += self.level
+                else:
+                    for friend in random.sample(friends, 2):
+                        friend.bonus_health += self.level
 
 
 @dataclass(frozen=True)
@@ -46,10 +49,10 @@ class Cricket(PetData):
     @staticmethod
     def handle_event(self, event, **kwargs):
         if event == Event.FAINT:
-            if kwargs['source'] == self:
-                index = kwargs['index']
-                # if there is room, append new 
-                # friends.append() FIXME
+            if kwargs["source"] == self:
+                index = kwargs["index"]
+                friends = kwargs["friends"]
+                friends.insert(index, BattlePet(Pet(ZombieCricket())))
                 pass
 
 
@@ -60,9 +63,16 @@ class Duck(PetData):
     tier = 1
 
     @staticmethod
-    def handle_event(self, event, source, player, game, **kwargs):
-        if event == Event.SELL and source == self:
-            pass # FIXME
+    def handle_event(self, event, **kwargs):
+        if event == Event.SELL:
+            if kwargs["source"] == self:
+                buyable_pets = [
+                    buyable
+                    for buyable in kwargs["player"].shop
+                    if isinstance(buyable.data, PetData)
+                ]
+                for pet in buyable_pets:
+                    pet.bonus_health += 1
 
 
 @dataclass(frozen=True)
@@ -74,13 +84,12 @@ class Fish(PetData):
     @staticmethod
     def handle_event(self, event, **kwargs):
         if event == Event.LEVEL_UP:
-            if kwargs['source'] == self:
-                for friend in kwargs['friends']:
+            if kwargs["source"] == self:
+                for friend in kwargs["friends"]:
                     if friend is None:
                         continue
-                    buff = self.level - 1
-                    friend.bonus_attack += buff
-                    friend.bonus_health += buff
+                    friend.bonus_attack += self.level - 1
+                    friend.bonus_health += self.level - 1
 
 
 @dataclass(frozen=True)
@@ -99,10 +108,46 @@ class Mosquito(PetData):
     @staticmethod
     def handle_event(self, event, **kwargs):
         if event == Event.START_BATTLE:
-            enemies = kwargs['enemies']
-            for _ in range(self.level):
-                enemy = random.choice(enemies)
-                enemy.take_damage(1)
+            enemies = [pet for pet in kwargs["enemies"] if pet is not None]
+            if enemies:
+                if len(enemies) < self.level:
+                    for enemy in enemies:
+                        enemy.bonus_health -= 1
+                else:
+                    for enemy in random.sample(enemies, self.level):
+                        enemy.bonus_health -= 1
+
+
+@dataclass(frozen=True)
+class Otter(PetData):
+    attack = 1
+    health = 2
+    tier = 1
+
+    @staticmethod
+    def handle_event(self, event, **kwargs):
+        if event == Event.BUY:
+            if kwargs["source"] == self:
+                friends = [
+                    pet for pet in kwargs["friends"] if pet is not None and pet != self
+                ]
+                if friends:
+                    friend = random.choice(friends)
+                    friend.bonus_attack += self.level
+                    friend.bonus_health += self.level
+
+
+@dataclass(frozen=True)
+class Pig(PetData):
+    attack = 3
+    health = 1
+    tier = 1
+
+    @staticmethod
+    def handle_event(self, event, **kwargs):
+        if event == Event.SELL:
+            if kwargs["source"] == self:
+                kwargs["player"].money += 1
 
 
 @dataclass(frozen=True)
@@ -210,7 +255,17 @@ def cumulative_dict(source):
 
 
 PACK1_PETS = {
-    1: [Ant(), Beaver(), Cricket(), Horse()],
+    1: [
+        Ant(),
+        Beaver(),
+        Cricket(),
+        Duck(),
+        Fish(),
+        Horse(),
+        Otter(),
+        Pig(),
+        Mosquito(),
+    ],
     2: [Swan()],
     3: [Giraffe()],
     4: [Deer()],

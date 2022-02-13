@@ -18,6 +18,7 @@ PLAN
     X ant effect
     - all the pets + effects
     - better visualization of the game
+    - make a real test suite
 
 4. create and train a reinforcement learning agent
     X make random agent functional
@@ -29,8 +30,8 @@ PLAN
 
 CURRENT TASK:
 - tier 1 pets
-    DONE: Ant Beaver Fish Mosquito
-    NOT DONE: Duck Otter Pig Horse Cricket
+    DONE: Ant Fish Mosquito Otter Beaver Pig Duck Cricket
+    NOT DONE: Horse
     CURRENTLY: 
 
 
