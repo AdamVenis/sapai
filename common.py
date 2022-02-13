@@ -20,7 +20,9 @@ class Event(enum.Enum):
 class Pet:
     def __init__(self, pet_data):
         self.bonus_attack = 0
+        self.battle_attack = 0  # expires at the beginning of next round
         self.bonus_health = 0
+        self.battle_health = 0
         self.tier = pet_data.tier
         self.level = 1
         self.copies = 1
@@ -28,10 +30,10 @@ class Pet:
         self.food = None
 
     def total_attack(self):
-        return self.data.attack + self.copies - 1 + self.bonus_attack
+        return self.data.attack + self.copies - 1 + self.bonus_attack + self.battle_attack
 
     def total_health(self):
-        return self.data.health + self.copies - 1 + self.bonus_health
+        return self.data.health + self.copies - 1 + self.bonus_health + self.battle_health
 
     def combine(self, other):
         self.copies += 1

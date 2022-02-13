@@ -58,6 +58,12 @@ class Buy:
                     player.add_bonus_unit(game.round)
             else:
                 player.pets[self.target_index] = new_pet
+            
+            target_pet = player.pets[self.target_index]  # in case this was None before
+            for pet in player.pets:
+                if pet is not None:
+                    pet.data.handle_event(pet, Event.BUY, source=target_pet, friends=player.pets)
+                    pet.data.handle_event(pet, Event.SUMMON, source=target_pet, friends=player.pets)
         else:
             target_pet.food = purchased.data
 
@@ -248,6 +254,10 @@ class Game:
         for player in self.players:
             player.refresh_shop(self.round)
             player.money = 10
+            for pet in player.pets:
+                if pet is not None:
+                    pet.battle_attack = 0
+                    pet.battle_health = 0
 
     def finish_round(self):
         battle_result = self.resolve_battle()

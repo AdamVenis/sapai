@@ -98,6 +98,13 @@ class Horse(PetData):
     health = 1
     tier = 1
 
+    @staticmethod
+    def handle_event(self, event, **kwargs):
+        if event == Event.SUMMON:
+            source = kwargs["source"]
+            if source != self:
+                source.battle_attack += 1
+
 
 @dataclass(frozen=True)
 class Mosquito(PetData):

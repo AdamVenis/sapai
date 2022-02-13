@@ -152,94 +152,14 @@ def winrate(env, agents, num_episodes):
     return {k: v / num_episodes for k, v in results.items()}
 
 
-def test_ant():
-    game = Game()
-    game.p1.pets[:2] = [Pet(pets.Beaver()), Pet(pets.Ant())]
-    game.p2.pets[:2] = [Pet(pets.Horse()), Pet(pets.Horse())]
-    assert game.resolve_battle() == BattleResult.P1_WIN
-
-
-def test_duck():
-    game = Game()
-    game.p1.pets[0] = Pet(pets.Duck())
-    game.p1.shop[0] = Pet(pets.Pig())
-    game.step(Sell(0))
-    assert game.p1.shop[0].total_health() == 2
-
-
-def test_hedgehog_combine():
-    # 1) faint a hedgehog outside of battle with a sleeping pill
-    # 2) damage two level 1 fish from 2/3 to 2/1 each
-    # 3) combine them. => 3/4? or a 3/2?
-    game = Game()
-    game.p1.pets[:2] = [Pet(pets.Fish()), Pet(pets.Fish()), Pet(pets.Hedgehog())]
-    game.p1.shop[-1] = pets.SleepingPill()
-    game.step(Buy(len(game.p1.shop) - 1, 2))
-    game.step(Combine(1, 0))
-    assert game.p1.pets[0].total_health() == 4
-
-
-def test_dolphin_hedgehog():
-    # assume attack order is dolphin -> croc -> hedgehog, but dolphin kills hedgehog.
-    # does hedgehog faint effect go on the top of the stack, pre-empting the croc?
-    game = Game()
-    game.p1.pets[:2] = [Pet(pets.Crocodile()), Pet(pets.Mosquito())]
-    game.p1.shop[:2] = [Buyable(pets.Hedgehog()), Buyable(pets.Horse())]
-    assert game.resolve_battle() == BattleResult.P1_WIN
-
-
-def test_fish():
-    game = Game()
-    game.p1.pets[:2] = [Pet(pets.Beaver()), Pet(pets.Fish())]
-    game.p1.shop[:2] = [Buyable(pets.Fish()), Buyable(pets.Fish())]
-    game.step(Buy(0, 1))
-    game.step(Buy(1, 1))
-    assert str(game.p1.pets) == "[Beaver(3, 3), Fish(5, 6), None, None, None]"
-
-
-def test_pig():
-    game = Game()
-    game.p1.pets[:2] = [Pet(pets.Pig())]
-    game.step(Sell(0))
-    assert game.p1.money == 12
-
-
-def test_beaver():
-    game = Game()
-    game.p1.pets[:2] = [Pet(pets.Beaver()), Pet(pets.Pig())]
-    game.step(Sell(0))
-    assert game.p1.pets[1].total_health() == 2
-
-
-def test_mosquito():
-    game = Game()
-    game.p1.pets[0] = Pet(pets.Mosquito())
-    game.p2.pets[0] = Pet(pets.Fish())
-    assert game.resolve_battle() == BattleResult.DRAW
-
-
-def test_cricket():
-    game = Game()
-    game.p1.pets[0] = Pet(pets.Cricket())
-    game.p2.pets[0] = Pet(pets.Pig())
-    assert game.resolve_battle() == BattleResult.P1_WIN
-
-
 def evaluate_winrates(num_episodes):
-    print(winrate(env, [HeuristicAgent(), BuyStrongestAgent()], num_episodes))  # ~71%
-    print(winrate(env, [BuyStrongestAgent(), BuyAgent()], num_episodes))  # ~65%
+    print(winrate(env, [HeuristicAgent(), BuyStrongestAgent()], num_episodes))  # ~53%
+    print(winrate(env, [BuyStrongestAgent(), BuyAgent()], num_episodes))  # ~61%
     print(winrate(env, [BuyAgent(), RandomAgent()], num_episodes))  # 99%
     print(winrate(env, [RandomAgent(), EndTurnAgent()], num_episodes))  # 99%
 
 
 if __name__ == "__main__":
     env = Env(verbose=False)
-    test_ant()
-    test_beaver()
-    test_cricket()
-    test_duck()
-    test_fish()
-    test_pig()
-    test_mosquito()
 
     evaluate_winrates(num_episodes=100)
