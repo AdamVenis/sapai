@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import enum
 
 MAX_SHOP_SIZE = 7
@@ -80,6 +81,7 @@ class BattlePet:
         self.bonus_attack = 0
         self.health = pet.total_health()
         self.bonus_health = 0
+        self.effect_charges = 0
         self.level = pet.level
         self.data = pet.data
         self.food = pet.food
@@ -91,8 +93,9 @@ class BattlePet:
         return self.health + self.bonus_health
 
     def take_damage(self, damage):
+        # returns if fainted
         self.bonus_health -= damage
-        # FIXME - this needs to trigger a faint if appropriate
+        return self.total_health() <= 0
 
     def handle_event(self, event, **kwargs):
         self.data.handle_event(self, event, **kwargs)
@@ -102,8 +105,8 @@ class BattlePet:
     def __repr__(self):
         return f"{self.data.__class__.__name__}({self.total_attack()}, {self.total_health()})"
 
-
-class PetData:
+@dataclass
+class PetData():
     @staticmethod
     def handle_event(self, event, **kwargs):
         # self is the pet whose effect we're checking
@@ -122,3 +125,22 @@ class ConsumableFood:
 
 class EquippableFood:
     pass
+
+
+def take_damage(pet, damage, friends):
+    fainted = pet.take_damage(damage)
+
+    for friend in friends:
+        friend.handle_event(Event.HURT, source=pet, friends=friends)
+        
+    index = friends.index(pet)
+    if fainted:
+        del friends[index]
+        pet.handle_event(Event.FAINT, source=pet, index=index, friends=friends)
+        for friend in friends:
+            friend.handle_event(
+                Event.FAINT,
+                source=pet,
+                index=4,
+                friends=friends,
+            )

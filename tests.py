@@ -117,5 +117,48 @@ class TestEverything(unittest.TestCase):
         game.step(Buy(0, 1))
         assert game.p1.pets[1].total_health() == 5
 
+    def test_shrimp(self):
+        game = Game()
+        game.p1.pets[:2] = [Pet(pets.Shrimp()), Pet(pets.Pig())]
+        game.step(Sell(1))
+        assert game.p1.pets[0].total_health() == 4
+
+    def test_dodo(self):
+        game = Game()
+        game.p1.pets[:2] = [Pet(pets.Dodo()), Pet(pets.Fish())]
+        game.p2.pets[:2] = [Pet(pets.Fish()), Pet(pets.Fish())]
+        assert game.resolve_battle() == BattleResult.P1_WIN
+
+    def test_spider(self):
+        game = Game()
+        game.p1.pets[0] = Pet(pets.Spider())
+        game.p2.pets[0] = Pet(pets.Beaver())
+        assert game.resolve_battle() == BattleResult.P1_WIN
+
+    def test_elephant(self):
+        game = Game()
+        game.p1.pets[:2] = [Pet(pets.Pig()), Pet(pets.Elephant())]
+        game.p2.pets[:2] = [Pet(pets.Pig()), Pet(pets.Pig())]
+        assert game.resolve_battle() == BattleResult.DRAW
+
+    def test_rat(self):
+        game = Game()
+        game.p1.pets[0] = Pet(pets.Rat())
+        game.p2.pets[:2] = [Pet(pets.Pig()), Pet(pets.Pig())]
+        assert game.resolve_battle() == BattleResult.P2_WIN
+
+    def test_hedgehog(self):
+        game = Game()
+        game.p1.pets[0] = Pet(pets.Hedgehog())
+        game.p2.pets[:2] = [Pet(pets.Pig()), Pet(pets.Pig())]
+        assert game.resolve_battle() == BattleResult.DRAW
+
+    def test_peacock(self):
+        game = Game()
+        game.p1.pets[0] = Pet(pets.Peacock())
+        game.p2.pets[:2] = [Pet(pets.Fish()), Pet(pets.Fish())]
+        assert game.resolve_battle() == BattleResult.DRAW
+
+
 if __name__ == "__main__":
     unittest.main()

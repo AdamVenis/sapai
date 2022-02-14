@@ -307,13 +307,24 @@ class Game:
             if self.verbose:
                 print("p1:", p1_pets)
                 print("p2:", p2_pets)
-            p1_pets[-1].take_damage(p2_pets[-1].total_attack())
-            p2_pets[-1].take_damage(p1_pets[-1].total_attack())
 
-            if p1_pets[-1].total_health() <= 0:
+            for pet in p1_pets:
+                pet.handle_event(Event.BEFORE_ATTACK, friends=p1_pets)
+            for pet in p2_pets:
+                pet.handle_event(Event.BEFORE_ATTACK, friends=p2_pets)
+
+            p1_fainted = p1_pets[-1].take_damage(p2_pets[-1].total_attack())
+            p2_fainted = p2_pets[-1].take_damage(p1_pets[-1].total_attack())
+
+            for pet in p1_pets:
+                pet.handle_event(Event.HURT, source=p1_pets[-1], friends=p1_pets)
+            for pet in p2_pets:
+                pet.handle_event(Event.HURT, source=p2_pets[-1], friends=p2_pets)
+
+            if p1_fainted:
                 source = p1_pets.pop()
                 source.handle_event(
-                    Event.FAINT, source=source, index=4, friends=p1_pets
+                    Event.FAINT, source=source, index=4, friends=p1_pets, enemies=p2_pets
                 )
                 for pet in p1_pets:
                     pet.handle_event(
@@ -321,11 +332,12 @@ class Game:
                         source=source,
                         index=4,
                         friends=p1_pets,
+                        enemies=p2_pets
                     )
-            if p2_pets[-1].total_health() <= 0:
+            if p2_fainted:
                 source = p2_pets.pop()
                 source.handle_event(
-                    Event.FAINT, source=source, index=4, friends=p2_pets
+                    Event.FAINT, source=source, index=4, friends=p2_pets, enemies=p1_pets
                 )
                 for pet in p2_pets:
                     pet.handle_event(
@@ -333,6 +345,7 @@ class Game:
                         source=source,
                         index=4,
                         friends=p2_pets,
+                        enemies=p1_pets
                     )
 
         if self.verbose:

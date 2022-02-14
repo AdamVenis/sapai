@@ -19,6 +19,7 @@ PLAN
     X tier 1 pets
     X make a real test suite
     X tier 1 food
+    - tier 2 pets
     - all the pets + effects
     - better visualization of the game
 
@@ -31,11 +32,12 @@ PLAN
 5. profit
 
 CURRENT TASK:
-    - tier 2 pets
-    DONE: Swan
-    NOT DONE: Dodo, Elephant, Hedgehog, Peacock, Rat, Shrimp, Spider
-    CURRENTLY: Crab
-
+    DONE:
+    NOT DONE:
+    CURRENTLY: 
 
 SERIOUS BUGS:
-- mosquito damage doesn't trigger faint event
+- general concerns over resolution ordering
+
+QUESTIONS:
+- level 2 peacock, use up a charge out of battle, buy another peacock - does it get the charge back?

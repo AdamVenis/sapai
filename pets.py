@@ -4,7 +4,7 @@ import random
 from common import *
 
 
-@dataclass(frozen=True)
+@dataclass
 class Ant(PetData):
     attack = 2
     health = 1
@@ -21,7 +21,7 @@ class Ant(PetData):
                     friend.bonus_health += 1 * self.level
 
 
-@dataclass(frozen=True)
+@dataclass
 class Beaver(PetData):
     attack = 2
     health = 2
@@ -40,7 +40,7 @@ class Beaver(PetData):
                         friend.bonus_health += self.level
 
 
-@dataclass(frozen=True)
+@dataclass
 class Cricket(PetData):
     attack = 1
     health = 2
@@ -54,9 +54,10 @@ class Cricket(PetData):
                 friends = kwargs["friends"]
                 if len(friends) < 5:
                     friends.insert(index, BattlePet(Pet(ZombieCricket())))
+                    # FIXME - trigger summon
 
 
-@dataclass(frozen=True)
+@dataclass
 class Duck(PetData):
     attack = 1
     health = 3
@@ -75,7 +76,7 @@ class Duck(PetData):
                     pet.bonus_health += 1
 
 
-@dataclass(frozen=True)
+@dataclass
 class Fish(PetData):
     attack = 2
     health = 3
@@ -92,7 +93,7 @@ class Fish(PetData):
                     friend.bonus_health += self.level - 1
 
 
-@dataclass(frozen=True)
+@dataclass
 class Horse(PetData):
     attack = 2
     health = 1
@@ -106,7 +107,7 @@ class Horse(PetData):
                 source.battle_attack += 1
 
 
-@dataclass(frozen=True)
+@dataclass
 class Mosquito(PetData):
     attack = 2
     health = 2
@@ -119,13 +120,15 @@ class Mosquito(PetData):
             if enemies:
                 if len(enemies) < self.level:
                     for enemy in enemies:
-                        enemy.bonus_health -= 1
+                        take_damage(enemy, 1, enemies)
+                        # FIXME - if this hits a flamingo, should the flamingo 
+                        # buff the ally before the second instance lands?
                 else:
                     for enemy in random.sample(enemies, self.level):
-                        enemy.bonus_health -= 1
+                        take_damage(enemy, 1, enemies)
 
 
-@dataclass(frozen=True)
+@dataclass
 class Otter(PetData):
     attack = 1
     health = 2
@@ -144,7 +147,7 @@ class Otter(PetData):
                     friend.bonus_health += self.level
 
 
-@dataclass(frozen=True)
+@dataclass
 class Pig(PetData):
     attack = 3
     health = 1
@@ -157,14 +160,14 @@ class Pig(PetData):
                 kwargs["player"].money += 1
 
 
-@dataclass(frozen=True)
+@dataclass
 class ZombieCricket(PetData):
     attack = 1
     health = 1
     tier = 1
 
 
-@dataclass(frozen=True)
+@dataclass
 class Crab(PetData):
     attack = 3
     health = 3
@@ -178,7 +181,7 @@ class Crab(PetData):
                 self.bonus_health = max_friend_health - 3
 
 
-@dataclass(frozen=True)
+@dataclass
 class Dodo(PetData):
     attack = 2
     health = 3
@@ -186,10 +189,16 @@ class Dodo(PetData):
 
     @staticmethod
     def handle_event(self, event, **kwargs):
-        pass  # FIXME
+        if event == Event.START_BATTLE:
+            friends = kwargs["friends"]
+            index = friends.index(self)
+            if index < len(friends) - 1:
+                friends[index + 1].bonus_attack += int(
+                    self.total_attack() * 0.5 * self.level
+                )
 
 
-@dataclass(frozen=True)
+@dataclass
 class Elephant(PetData):
     attack = 3
     health = 5
@@ -197,10 +206,16 @@ class Elephant(PetData):
 
     @staticmethod
     def handle_event(self, event, **kwargs):
-        pass  # FIXME
+        if event == Event.BEFORE_ATTACK:
+            friends = kwargs["friends"]
+            if friends[-1] == self:
+                for i in range(
+                    len(friends) - 2, max(-1, len(friends) - 3 - self.level), -1
+                ):
+                    take_damage(friends[i], 1, friends)
 
 
-@dataclass(frozen=True)
+@dataclass
 class Flamingo(PetData):
     attack = 3
     health = 1
@@ -211,7 +226,7 @@ class Flamingo(PetData):
         pass  # FIXME
 
 
-@dataclass(frozen=True)
+@dataclass
 class Hedgehog(PetData):
     attack = 3
     health = 2
@@ -219,10 +234,16 @@ class Hedgehog(PetData):
 
     @staticmethod
     def handle_event(self, event, **kwargs):
-        pass  # FIXME
+        if event == Event.FAINT:
+            if kwargs["source"] == self:
+                enemies = kwargs["enemies"]
+                for enemy in enemies:
+                    take_damage(enemy, 2 * self.level, enemies)
+                    # FIXME - i think these instances should all land before subsequent
+                    # events are emitted (like faints)
 
 
-@dataclass(frozen=True)
+@dataclass
 class Peacock(PetData):
     attack = 2
     health = 5
@@ -230,10 +251,18 @@ class Peacock(PetData):
 
     @staticmethod
     def handle_event(self, event, **kwargs):
-        pass  # FIXME
+        if event == Event.START_BATTLE:
+            self.effect_charges = self.level
+            # FIXME - this isn't correct. the charges should persist outside of battle.
+
+        if event == Event.HURT:
+            if kwargs["source"] == self:
+                if self.effect_charges > 0:
+                    self.bonus_attack += int(self.total_attack() * 0.5)
+                    self.effect_charges -= 1
 
 
-@dataclass(frozen=True)
+@dataclass
 class Rat(PetData):
     attack = 4
     health = 5
@@ -241,10 +270,24 @@ class Rat(PetData):
 
     @staticmethod
     def handle_event(self, event, **kwargs):
-        pass  # FIXME
+        if event == Event.FAINT:
+            if kwargs["source"] == self:
+                enemies = kwargs["enemies"]
+                for _ in range(self.level):
+                    if len(enemies) < 5:
+                        enemies.append(BattlePet(Pet(DirtyRat())))
+                        # FIXME - trigger summon
 
 
-@dataclass(frozen=True)
+
+@dataclass
+class DirtyRat(PetData):
+    attack = 1
+    health = 1
+    tier = 1
+
+
+@dataclass
 class Shrimp(PetData):
     attack = 2
     health = 3
@@ -252,10 +295,18 @@ class Shrimp(PetData):
 
     @staticmethod
     def handle_event(self, event, **kwargs):
-        pass  # FIXME
+        if event == Event.SELL:
+            if kwargs["source"] != self:
+                friends = kwargs["friends"]
+                if len(friends) < 2:
+                    for friend in friends:
+                        friend.bonus_health += self.level
+                else:
+                    for friend in random.sample(friends, 1):
+                        friend.bonus_health += self.level
 
 
-@dataclass(frozen=True)
+@dataclass
 class Spider(PetData):
     attack = 2
     health = 2
@@ -263,10 +314,20 @@ class Spider(PetData):
 
     @staticmethod
     def handle_event(self, event, **kwargs):
-        pass  # FIXME
+        if event == Event.FAINT:
+            if kwargs["source"] == self:
+                index = kwargs["index"]
+                friends = kwargs["friends"]
+                if len(friends) < 5:
+                    spawned_pet = BattlePet(Pet(random.choice(PACK1_PETS[3])))
+                    spawned_pet.bonus_attack = 1 - spawned_pet.total_attack()
+                    spawned_pet.bonus_health = 1 - spawned_pet.total_health()
+                    spawned_pet.level = self.level
+                    friends.insert(index, spawned_pet)
+                    # FIXME - trigger summon
 
 
-@dataclass(frozen=True)
+@dataclass
 class Swan(PetData):
     attack = 1
     health = 3
@@ -275,11 +336,11 @@ class Swan(PetData):
     @staticmethod
     def handle_event(self, event, **kwargs):
         if event == Event.START_ROUND:
-            if kwargs['source'] == self:
-                kwargs['player'].money += self.level
+            if kwargs["source"] == self:
+                kwargs["player"].money += self.level
 
 
-@dataclass(frozen=True)
+@dataclass
 class Giraffe(PetData):
     attack = 2
     health = 5
@@ -289,7 +350,7 @@ class Giraffe(PetData):
         pass  # FIXME
 
 
-@dataclass(frozen=True)
+@dataclass
 class Deer(PetData):
     attack = 1
     health = 1
@@ -299,7 +360,7 @@ class Deer(PetData):
         pass  # FIXME
 
 
-@dataclass(frozen=True)
+@dataclass
 class Crocodile(PetData):
     attack = 8
     health = 4
@@ -309,7 +370,7 @@ class Crocodile(PetData):
         pass  # FIXME
 
 
-@dataclass(frozen=True)
+@dataclass
 class Dragon(PetData):
     attack = 6
     health = 8
@@ -319,7 +380,7 @@ class Dragon(PetData):
         pass  # FIXME
 
 
-@dataclass(frozen=True)
+@dataclass
 class Apple(ConsumableFood):
     @staticmethod
     def consume(pet):
@@ -327,7 +388,7 @@ class Apple(ConsumableFood):
         pet.bonus_health += 1
 
 
-@dataclass(frozen=True)
+@dataclass
 class Honey(EquippableFood):
     @staticmethod
     def handle_event(self, event, **kwargs):
@@ -337,40 +398,41 @@ class Honey(EquippableFood):
                 friends = kwargs["friends"]
                 if len(friends) < 5:
                     friends.insert(index, BattlePet(Pet(HoneyBee())))
+                    # FIXME - trigger summon
 
 
-@dataclass(frozen=True)
+@dataclass
 class HoneyBee(PetData):
     attack = 1
     health = 1
     tier = 1
 
 
-@dataclass(frozen=True)
+@dataclass
 class Meat(FoodData):
     def effect(self):
         pass  # FIXME
 
 
-@dataclass(frozen=True)
+@dataclass
 class Garlic(FoodData):
     def effect(self):
         pass  # FIXME
 
 
-@dataclass(frozen=True)
+@dataclass
 class Salad(FoodData):
     def effect(self):
         pass  # FIXME
 
 
-@dataclass(frozen=True)
+@dataclass
 class Chocolate(FoodData):
     def effect(self):
         pass  # FIXME
 
 
-@dataclass(frozen=True)
+@dataclass
 class Melon(FoodData):
     def effect(self):
         pass  # FIXME
