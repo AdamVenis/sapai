@@ -31,6 +31,10 @@ PLAN
 5. profit
 
 CURRENT TASK:
+    - tier 2 pets
+    DONE: Swan
+    NOT DONE: Dodo, Elephant, Hedgehog, Peacock, Rat, Shrimp, Spider
+    CURRENTLY: Crab
 
 
 SERIOUS BUGS:

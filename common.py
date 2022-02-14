@@ -16,6 +16,7 @@ class Event(enum.Enum):
     START_BATTLE = 8
     KNOCKOUT = 9
     EAT = 10
+    START_ROUND = 11
 
 
 class Pet:
@@ -105,6 +106,7 @@ class BattlePet:
 class PetData:
     @staticmethod
     def handle_event(self, event, **kwargs):
+        # self is the pet whose effect we're checking
         pass
 
 

@@ -103,5 +103,19 @@ class TestEverything(unittest.TestCase):
         game.step(Buy(len(game.p1.shop) - 1, 0))
         assert game.resolve_battle() == BattleResult.P1_WIN
 
+    def test_swan(self):
+        game = Game()
+        game.p1.pets[0] = Pet(pets.Swan())
+        game.step(EndTurn())
+        game.step(EndTurn())
+        assert game.p1.money == 11
+
+    def test_crab(self):
+        game = Game()
+        game.p1.pets[0] = Pet(pets.Peacock())
+        game.p1.shop[0] = Buyable(pets.Crab())
+        game.step(Buy(0, 1))
+        assert game.p1.pets[1].total_health() == 5
+
 if __name__ == "__main__":
     unittest.main()

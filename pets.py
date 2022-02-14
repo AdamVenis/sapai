@@ -14,7 +14,7 @@ class Ant(PetData):
     def handle_event(self, event, **kwargs):
         if event == Event.FAINT:
             if kwargs["source"] == self:
-                friends = [pet for pet in kwargs["friends"] if pet is not None]
+                friends = kwargs["friends"]
                 if friends:
                     friend = random.choice(friends)
                     friend.bonus_attack += 2 * self.level
@@ -31,7 +31,7 @@ class Beaver(PetData):
     def handle_event(self, event, **kwargs):
         if event == Event.SELL:
             if kwargs["source"] == self:
-                friends = [pet for pet in kwargs["friends"] if pet is not None]
+                friends = kwargs["friends"]
                 if len(friends) < 2:
                     for friend in friends:
                         friend.bonus_health += self.level
@@ -52,7 +52,8 @@ class Cricket(PetData):
             if kwargs["source"] == self:
                 index = kwargs["index"]
                 friends = kwargs["friends"]
-                friends.insert(index, BattlePet(Pet(ZombieCricket())))
+                if len(friends) < 5:
+                    friends.insert(index, BattlePet(Pet(ZombieCricket())))
 
 
 @dataclass(frozen=True)
@@ -114,7 +115,7 @@ class Mosquito(PetData):
     @staticmethod
     def handle_event(self, event, **kwargs):
         if event == Event.START_BATTLE:
-            enemies = [pet for pet in kwargs["enemies"] if pet is not None]
+            enemies = kwargs["enemies"]
             if enemies:
                 if len(enemies) < self.level:
                     for enemy in enemies:
@@ -164,13 +165,118 @@ class ZombieCricket(PetData):
 
 
 @dataclass(frozen=True)
+class Crab(PetData):
+    attack = 3
+    health = 3
+    tier = 2
+
+    @staticmethod
+    def handle_event(self, event, **kwargs):
+        if event == Event.BUY:
+            if kwargs["source"] == self:
+                max_friend_health = max(pet.total_health() for pet in kwargs["friends"])
+                self.bonus_health = max_friend_health - 3
+
+
+@dataclass(frozen=True)
+class Dodo(PetData):
+    attack = 2
+    health = 3
+    tier = 2
+
+    @staticmethod
+    def handle_event(self, event, **kwargs):
+        pass  # FIXME
+
+
+@dataclass(frozen=True)
+class Elephant(PetData):
+    attack = 3
+    health = 5
+    tier = 2
+
+    @staticmethod
+    def handle_event(self, event, **kwargs):
+        pass  # FIXME
+
+
+@dataclass(frozen=True)
+class Flamingo(PetData):
+    attack = 3
+    health = 1
+    tier = 2
+
+    @staticmethod
+    def handle_event(self, event, **kwargs):
+        pass  # FIXME
+
+
+@dataclass(frozen=True)
+class Hedgehog(PetData):
+    attack = 3
+    health = 2
+    tier = 2
+
+    @staticmethod
+    def handle_event(self, event, **kwargs):
+        pass  # FIXME
+
+
+@dataclass(frozen=True)
+class Peacock(PetData):
+    attack = 2
+    health = 5
+    tier = 2
+
+    @staticmethod
+    def handle_event(self, event, **kwargs):
+        pass  # FIXME
+
+
+@dataclass(frozen=True)
+class Rat(PetData):
+    attack = 4
+    health = 5
+    tier = 2
+
+    @staticmethod
+    def handle_event(self, event, **kwargs):
+        pass  # FIXME
+
+
+@dataclass(frozen=True)
+class Shrimp(PetData):
+    attack = 2
+    health = 3
+    tier = 2
+
+    @staticmethod
+    def handle_event(self, event, **kwargs):
+        pass  # FIXME
+
+
+@dataclass(frozen=True)
+class Spider(PetData):
+    attack = 2
+    health = 2
+    tier = 2
+
+    @staticmethod
+    def handle_event(self, event, **kwargs):
+        pass  # FIXME
+
+
+@dataclass(frozen=True)
 class Swan(PetData):
     attack = 1
     health = 3
     tier = 2
 
-    def effect(self):
-        pass  # FIXME
+    @staticmethod
+    def handle_event(self, event, **kwargs):
+        if event == Event.START_ROUND:
+            if kwargs['source'] == self:
+                kwargs['player'].money += self.level
 
 
 @dataclass(frozen=True)
@@ -229,8 +335,7 @@ class Honey(EquippableFood):
             if kwargs["source"] == self:
                 index = kwargs["index"]
                 friends = kwargs["friends"]
-                if friends[0] is None:
-                    del friends[0]
+                if len(friends) < 5:
                     friends.insert(index, BattlePet(Pet(HoneyBee())))
 
 
@@ -290,11 +395,22 @@ PACK1_PETS = {
         Duck(),
         Fish(),
         Horse(),
+        Mosquito(),
         Otter(),
         Pig(),
-        Mosquito(),
     ],
-    2: [Swan()],
+    2: [
+        Crab(),
+        Dodo(),
+        Elephant(),
+        Flamingo(),
+        Hedgehog(),
+        Peacock(),
+        Rat(),
+        Shrimp(),
+        Spider(),
+        Swan(),
+    ],
     3: [Giraffe()],
     4: [Deer()],
     5: [Crocodile()],
