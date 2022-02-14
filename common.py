@@ -18,6 +18,7 @@ class Event(enum.Enum):
     KNOCKOUT = 9
     EAT = 10
     START_ROUND = 11
+    AFTER_ATTACK = 12
 
 
 class Pet:
@@ -41,6 +42,16 @@ class Pet:
         return (
             self.data.health + self.copies - 1 + self.bonus_health + self.battle_health
         )
+
+    def take_damage(self, damage):
+        # returns if fainted
+        self.bonus_health -= damage
+        return self.total_health() <= 0
+
+    def handle_event(self, event, **kwargs):
+        self.data.handle_event(self, event, **kwargs)
+        if self.food is not None:
+            self.food.handle_event(self, event, **kwargs)
 
     def combine(self, other):
         self.copies += 1
@@ -103,19 +114,15 @@ class BattlePet:
             self.food.handle_event(self, event, **kwargs)
 
     def __repr__(self):
-        return f"{self.data.__class__.__name__}({self.total_attack()}, {self.total_health()})"
+        food_repr = f", {self.food.__class__.__name__}" if self.food is not None else ""
+        return f"{self.data.__class__.__name__}({self.total_attack()}, {self.total_health()}{food_repr})"
+
 
 @dataclass
-class PetData():
+class PetData:
     @staticmethod
     def handle_event(self, event, **kwargs):
         # self is the pet whose effect we're checking
-        pass
-
-
-class FoodData:
-    @staticmethod
-    def handle_event(self, event, **kwargs):
         pass
 
 
@@ -132,15 +139,19 @@ def take_damage(pet, damage, friends):
 
     for friend in friends:
         friend.handle_event(Event.HURT, source=pet, friends=friends)
-        
-    index = friends.index(pet)
+
     if fainted:
-        del friends[index]
-        pet.handle_event(Event.FAINT, source=pet, index=index, friends=friends)
-        for friend in friends:
-            friend.handle_event(
-                Event.FAINT,
-                source=pet,
-                index=4,
-                friends=friends,
-            )
+        faint(pet, friends)
+
+
+def faint(pet, friends):
+    index = friends.index(pet)
+    del friends[index]
+    pet.handle_event(Event.FAINT, source=pet, index=index, friends=friends)
+    for friend in friends:
+        friend.handle_event(
+            Event.FAINT,
+            source=pet,
+            index=4,
+            friends=friends,
+        )

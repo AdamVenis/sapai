@@ -26,27 +26,30 @@ class Buy:
     def valid(self, player, game):
         if self.source_index >= len(player.shop):
             return False
-        if player.money < 3:  # FIXME
+        if player.money < 3:  # FIXME - sometimes things are cheaper, like milk
             return False
 
         purchased = player.shop[self.source_index]
-        target_pet = player.pets[self.target_index]
         if isinstance(purchased.data, PetData):
-            if target_pet is not None:
-                if target_pet.level == 3 or target_pet.data != purchased.data:
-                    return False
-        else:
-            if target_pet is None:
+            if self.target_index >= len(player.pets):
+                return True
+                
+            target_pet = player.pets[self.target_index]
+            if target_pet.level == 3 or target_pet.data != purchased.data:
                 return False
+        else:
+            if self.target_index >= len(player.pets):
+                return False
+
         return True
 
     def act(self, player, game):
         player.money -= 3  # FIXME
         purchased = player.shop[self.source_index]
-        target_pet = player.pets[self.target_index]
         if isinstance(purchased.data, PetData):
             new_pet = Pet(purchased.data)
-            if target_pet is not None:
+            if self.target_index < len(player.pets):
+                target_pet = player.pets[self.target_index]
                 level_up = target_pet.combine(new_pet)
                 if level_up:
                     target_pet.data.handle_event(
@@ -57,27 +60,29 @@ class Buy:
                     )
                     player.add_bonus_unit(game.round)
             else:
-                player.pets[self.target_index] = new_pet
+                player.pets.append(new_pet)
 
-            target_pet = player.pets[self.target_index]  # in case this was None before
-            pet_list = player.pet_list()
-            for pet in pet_list:
+            # in case there was a combine and the reference changed
+            target_pet = player.pets[self.target_index]  
+            for pet in player.pets:
                 pet.data.handle_event(
-                    pet, Event.BUY, source=target_pet, friends=pet_list
+                    pet, Event.BUY, source=target_pet, friends=player.pets
                 )
                 pet.data.handle_event(
-                    pet, Event.SUMMON, source=target_pet, friends=pet_list
+                    pet, Event.SUMMON, source=target_pet, friends=player.pets
                 )
 
         elif isinstance(purchased.data, ConsumableFood):
-            for pet in player.pet_list():
+            target_pet = player.pets[self.target_index]  
+            for pet in player.pets:
                 pet.data.handle_event(
                     pet, Event.EAT, food=purchased.data, target=target_pet
                 )
-            purchased.data.consume(pet)
+            purchased.data.consume(pet, friends=player.pets)
 
         elif isinstance(purchased.data, EquippableFood):
-            for pet in player.pet_list():
+            target_pet = player.pets[self.target_index]  
+            for pet in player.pets:
                 pet.data.handle_event(
                     pet, Event.EAT, food=purchased.data, target=target_pet
                 )
@@ -90,10 +95,7 @@ class Reposition:
     target_index: int
 
     def valid(self, player, game):
-        return (
-            player.pets[self.source_index] is not None
-            and self.source_index != self.target_index
-        )
+        return self.source_index < len(player.pets) and self.target_index < len(player.pets)
 
     def act(self, player, game):
         source_pet = player.pets[self.source_index]
@@ -109,17 +111,16 @@ class Sell:
     index: int
 
     def valid(self, player, game):
-        return player.pets[self.index] is not None
+        return self.index < len(player.pets)
 
     def act(self, player, game):
         sold_pet = player.pets[self.index]
-        player.pets[self.index] = None
+        del player.pets[self.index]
 
-        pet_list = player.pet_list()
-        for pet in pet_list:
-            pet.data.handle_event(pet, Event.SELL, source=sold_pet, friends=pet_list)
+        for pet in player.pets:
+            pet.data.handle_event(pet, Event.SELL, source=sold_pet, friends=player.pets)
         sold_pet.data.handle_event(
-            sold_pet, Event.SELL, source=sold_pet, friends=pet_list, player=player
+            sold_pet, Event.SELL, source=sold_pet, friends=player.pets, player=player
         )
         player.money += sold_pet.level
 
@@ -140,11 +141,10 @@ class Combine:
     target_index: int
 
     def valid(self, player, game):
+        if self.source_index >= len(player.pets) or self.target_index >= len(player.pets):
+            return False
+
         pet1, pet2 = player.pets[self.source_index], player.pets[self.target_index]
-        if pet1 is None:
-            return False
-        if pet2 is None:
-            return False
         return pet1.data == pet2.data
 
     def act(self, player, game):
@@ -152,7 +152,7 @@ class Combine:
         level_up = target_pet.combine(player.pets[self.source_index])
         if level_up:
             player.add_bonus_unit(game.round)
-        player.pets[self.source_index] = None
+        del player.pets[self.source_index]
 
 
 @dataclass
@@ -173,16 +173,13 @@ class Food:
 
 class Player:
     def __init__(self, health):
-        self.pets = [None] * 5
+        self.pets = []
         self.shop = []
         self.money = 0
         self.health = health
 
-    def pet_list(self):
-        return [pet for pet in self.pets if pet is not None]
-
     def get_pets_for_battle(self):
-        return [BattlePet(pet) for pet in self.pets if pet is not None]
+        return [BattlePet(pet) for pet in self.pets]
 
     def refresh_shop(self, round):
         # seems to be uniform with replacement among all available pets
@@ -278,7 +275,7 @@ class Game:
         for player in self.players:
             player.refresh_shop(self.round)
             player.money = 10
-            for pet in player.pet_list():
+            for pet in player.pets:
                 pet.battle_attack = 0
                 pet.battle_health = 0
                 pet.data.handle_event(pet, Event.START_ROUND, source=pet, player=player)
@@ -321,10 +318,29 @@ class Game:
             for pet in p2_pets:
                 pet.handle_event(Event.HURT, source=p2_pets[-1], friends=p2_pets)
 
+            for pet in p1_pets:
+                pet.handle_event(
+                    Event.AFTER_ATTACK,
+                    source=p1_pets[-1],
+                    target=p2_pets[-1],
+                    enemies=p2_pets,
+                )
+            for pet in p2_pets:
+                pet.handle_event(
+                    Event.AFTER_ATTACK,
+                    source=p2_pets[-1],
+                    target=p1_pets[-1],
+                    enemies=p1_pets,
+                )
+
             if p1_fainted:
                 source = p1_pets.pop()
                 source.handle_event(
-                    Event.FAINT, source=source, index=4, friends=p1_pets, enemies=p2_pets
+                    Event.FAINT,
+                    source=source,
+                    index=4,
+                    friends=p1_pets,
+                    enemies=p2_pets,
                 )
                 for pet in p1_pets:
                     pet.handle_event(
@@ -332,12 +348,16 @@ class Game:
                         source=source,
                         index=4,
                         friends=p1_pets,
-                        enemies=p2_pets
+                        enemies=p2_pets,
                     )
             if p2_fainted:
                 source = p2_pets.pop()
                 source.handle_event(
-                    Event.FAINT, source=source, index=4, friends=p2_pets, enemies=p1_pets
+                    Event.FAINT,
+                    source=source,
+                    index=4,
+                    friends=p2_pets,
+                    enemies=p1_pets,
                 )
                 for pet in p2_pets:
                     pet.handle_event(
@@ -345,7 +365,7 @@ class Game:
                         source=source,
                         index=4,
                         friends=p2_pets,
-                        enemies=p1_pets
+                        enemies=p1_pets,
                     )
 
         if self.verbose:

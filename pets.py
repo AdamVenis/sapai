@@ -121,7 +121,7 @@ class Mosquito(PetData):
                 if len(enemies) < self.level:
                     for enemy in enemies:
                         take_damage(enemy, 1, enemies)
-                        # FIXME - if this hits a flamingo, should the flamingo 
+                        # FIXME - if this hits a flamingo, should the flamingo
                         # buff the ally before the second instance lands?
                 else:
                     for enemy in random.sample(enemies, self.level):
@@ -279,7 +279,6 @@ class Rat(PetData):
                         # FIXME - trigger summon
 
 
-
 @dataclass
 class DirtyRat(PetData):
     attack = 1
@@ -383,7 +382,7 @@ class Dragon(PetData):
 @dataclass
 class Apple(ConsumableFood):
     @staticmethod
-    def consume(pet):
+    def consume(pet, **kwargs):
         pet.bonus_attack += 1
         pet.bonus_health += 1
 
@@ -409,33 +408,49 @@ class HoneyBee(PetData):
 
 
 @dataclass
-class Meat(FoodData):
-    def effect(self):
-        pass  # FIXME
+class Cupcake(ConsumableFood):
+    @staticmethod
+    def consume(pet, **kwargs):
+        pet.battle_attack += 3
+        pet.battle_health += 3
 
 
 @dataclass
-class Garlic(FoodData):
-    def effect(self):
-        pass  # FIXME
+class MeatBone(EquippableFood):
+    @staticmethod
+    def handle_event(self, event, **kwargs):
+        if event == Event.AFTER_ATTACK:
+            if kwargs["source"] == self:
+                target = kwargs["target"]
+                if target.total_health() >= 0:
+                    take_damage(target, 5, kwargs["enemies"])
 
 
 @dataclass
-class Salad(FoodData):
-    def effect(self):
-        pass  # FIXME
+class SleepingPill(ConsumableFood):
+    @staticmethod
+    def consume(pet, **kwargs):
+        faint(pet, kwargs["friends"])
 
 
 @dataclass
-class Chocolate(FoodData):
-    def effect(self):
-        pass  # FIXME
+class Garlic(EquippableFood):
+    pass
 
 
 @dataclass
-class Melon(FoodData):
-    def effect(self):
-        pass  # FIXME
+class Salad(ConsumableFood):
+    pass
+
+
+@dataclass
+class Chocolate(ConsumableFood):
+    pass
+
+
+@dataclass
+class Melon(EquippableFood):
+    pass
 
 
 def cumulative_dict(source):
@@ -481,7 +496,7 @@ PACK1_PETS = {
 
 PACK1_FOOD = {
     1: [Apple(), Honey()],
-    2: [Meat()],
+    2: [Cupcake(), MeatBone(), SleepingPill()],
     3: [Garlic()],
     4: [Salad()],
     5: [Chocolate()],

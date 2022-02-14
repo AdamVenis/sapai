@@ -19,7 +19,8 @@ PLAN
     X tier 1 pets
     X make a real test suite
     X tier 1 food
-    - tier 2 pets
+    X tier 2 pets
+    X tier 2 food
     - all the pets + effects
     - better visualization of the game
 
@@ -32,9 +33,6 @@ PLAN
 5. profit
 
 CURRENT TASK:
-    DONE:
-    NOT DONE:
-    CURRENTLY: 
 
 SERIOUS BUGS:
 - general concerns over resolution ordering
