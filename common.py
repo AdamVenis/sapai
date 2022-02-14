@@ -15,6 +15,7 @@ class Event(enum.Enum):
     END_TURN = 7
     START_BATTLE = 8
     KNOCKOUT = 9
+    EAT = 10
 
 
 class Pet:
@@ -30,10 +31,14 @@ class Pet:
         self.food = None
 
     def total_attack(self):
-        return self.data.attack + self.copies - 1 + self.bonus_attack + self.battle_attack
+        return (
+            self.data.attack + self.copies - 1 + self.bonus_attack + self.battle_attack
+        )
 
     def total_health(self):
-        return self.data.health + self.copies - 1 + self.bonus_health + self.battle_health
+        return (
+            self.data.health + self.copies - 1 + self.bonus_health + self.battle_health
+        )
 
     def combine(self, other):
         self.copies += 1
@@ -107,3 +112,11 @@ class FoodData:
     @staticmethod
     def handle_event(self, event, **kwargs):
         pass
+
+
+class ConsumableFood:
+    pass
+
+
+class EquippableFood:
+    pass

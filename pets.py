@@ -53,7 +53,6 @@ class Cricket(PetData):
                 index = kwargs["index"]
                 friends = kwargs["friends"]
                 friends.insert(index, BattlePet(Pet(ZombieCricket())))
-                pass
 
 
 @dataclass(frozen=True)
@@ -215,9 +214,31 @@ class Dragon(PetData):
 
 
 @dataclass(frozen=True)
-class Apple(FoodData):
-    def effect(self):
-        pass  # FIXME
+class Apple(ConsumableFood):
+    @staticmethod
+    def consume(pet):
+        pet.bonus_attack += 1
+        pet.bonus_health += 1
+
+
+@dataclass(frozen=True)
+class Honey(EquippableFood):
+    @staticmethod
+    def handle_event(self, event, **kwargs):
+        if event == Event.FAINT:
+            if kwargs["source"] == self:
+                index = kwargs["index"]
+                friends = kwargs["friends"]
+                if friends[0] is None:
+                    del friends[0]
+                    friends.insert(index, BattlePet(Pet(HoneyBee())))
+
+
+@dataclass(frozen=True)
+class HoneyBee(PetData):
+    attack = 1
+    health = 1
+    tier = 1
 
 
 @dataclass(frozen=True)
@@ -281,7 +302,7 @@ PACK1_PETS = {
 }
 
 PACK1_FOOD = {
-    1: [Apple()],
+    1: [Apple(), Honey()],
     2: [Meat()],
     3: [Garlic()],
     4: [Salad()],

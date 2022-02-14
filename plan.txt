@@ -18,6 +18,7 @@ PLAN
     X ant effect
     X tier 1 pets
     X make a real test suite
+    X tier 1 food
     - all the pets + effects
     - better visualization of the game
 
