@@ -153,8 +153,8 @@ def winrate(env, agents, num_episodes):
 
 
 def evaluate_winrates(num_episodes):
-    print(winrate(env, [HeuristicAgent(), BuyStrongestAgent()], num_episodes))  # ~53%
-    print(winrate(env, [BuyStrongestAgent(), BuyAgent()], num_episodes))  # ~61%
+    print(winrate(env, [HeuristicAgent(), BuyStrongestAgent()], num_episodes))  # ~54%
+    print(winrate(env, [BuyStrongestAgent(), BuyAgent()], num_episodes))  # ~52%
     print(winrate(env, [BuyAgent(), RandomAgent()], num_episodes))  # 99%
     print(winrate(env, [RandomAgent(), EndTurnAgent()], num_episodes))  # 99%
 
