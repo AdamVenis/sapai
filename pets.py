@@ -53,7 +53,7 @@ class Cricket(PetData):
                 index = kwargs["index"]
                 friends = kwargs["friends"]
                 if len(friends) < 5:
-                    friends.insert(index, BattlePet(Pet(ZombieCricket())))
+                    friends.insert(index, Pet(ZombieCricket()))
                     # FIXME - trigger summon
 
 
@@ -282,7 +282,7 @@ class Rat(PetData):
                     return
                 for _ in range(self.level):
                     if len(enemies) < 5:
-                        enemies.append(BattlePet(Pet(DirtyRat())))
+                        enemies.append(Pet(DirtyRat()))
                         # FIXME - trigger summon
 
 
@@ -325,7 +325,7 @@ class Spider(PetData):
                 index = kwargs["index"]
                 friends = kwargs["friends"]
                 if len(friends) < 5:
-                    spawned_pet = BattlePet(Pet(random.choice(PACK1_PETS[3])))
+                    spawned_pet = Pet(random.choice(PACK1_PETS[3]))
                     spawned_pet.bonus_attack = 1 - spawned_pet.total_attack()
                     spawned_pet.bonus_health = 1 - spawned_pet.total_health()
                     spawned_pet.level = self.level
@@ -536,7 +536,7 @@ class Honey(EquippableFood):
                 index = kwargs["index"]
                 friends = kwargs["friends"]
                 if len(friends) < 5:
-                    friends.insert(index, BattlePet(Pet(HoneyBee())))
+                    friends.insert(index, Pet(HoneyBee()))
                     # FIXME - trigger summon
 
 

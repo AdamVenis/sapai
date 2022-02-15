@@ -182,7 +182,7 @@ class Player:
         self.health = health
 
     def get_pets_for_battle(self):
-        return [BattlePet(pet) for pet in self.pets]
+        return [pet.to_battle_pet() for pet in self.pets]
 
     def refresh_shop(self, round):
         # seems to be uniform with replacement among all available pets

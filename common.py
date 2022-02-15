@@ -22,25 +22,39 @@ class Event(enum.Enum):
 
 
 class Pet:
-    def __init__(self, pet_data):
+    def __init__(self, data):
+        self.data = data
+        self.attack = data.attack
+        self.health = data.health
+        self.tier = data.tier
         self.bonus_attack = 0
-        self.battle_attack = 0  # expires at the beginning of next round
         self.bonus_health = 0
+        self.battle_attack = 0  # expires at the beginning of next round
         self.battle_health = 0
-        self.tier = pet_data.tier
+        self.effect_charges = 0
         self.level = 1
         self.copies = 1
-        self.data = pet_data
         self.food = None
+
+    def to_battle_pet(self):
+        pet = Pet(self.data)
+        pet.bonus_attack = self.bonus_attack
+        pet.bonus_health = self.bonus_health
+        pet.battle_attack = self.battle_attack
+        pet.battle_health = self.battle_health
+        pet.level = self.level
+        pet.copies = self.copies
+        pet.food = self.food
+        return pet
 
     def total_attack(self):
         return (
-            self.data.attack + self.copies - 1 + self.bonus_attack + self.battle_attack
+            self.attack + self.copies - 1 + self.bonus_attack + self.battle_attack
         )
 
     def total_health(self):
         return (
-            self.data.health + self.copies - 1 + self.bonus_health + self.battle_health
+            self.health + self.copies - 1 + self.bonus_health + self.battle_health
         )
 
     def take_damage(self, damage):
@@ -65,54 +79,13 @@ class Pet:
         else:
             level_up = False
 
-        self.attack = (
-            self.data.attack
-            + self.copies
-            - 1
-            + max(self.bonus_attack, other.bonus_attack)
-        )
-        self.health = (
-            self.data.health
-            + self.copies
-            - 1
-            + max(self.bonus_health, other.bonus_health)
-        )
+        self.bonus_attack = max(self.bonus_attack, other.bonus_attack)
+        self.bonus_health = max(self.bonus_health, other.bonus_health)
+
         if self.food is None:
             self.food = other.food
 
         return level_up
-
-    def __repr__(self):
-        food_repr = f", {self.food.__class__.__name__}" if self.food is not None else ""
-        return f"{self.data.__class__.__name__}({self.total_attack()}, {self.total_health()}{food_repr})"
-
-
-class BattlePet:
-    def __init__(self, pet):
-        self.attack = pet.total_attack()
-        self.bonus_attack = 0
-        self.health = pet.total_health()
-        self.bonus_health = 0
-        self.effect_charges = 0
-        self.level = pet.level
-        self.data = pet.data
-        self.food = pet.food
-
-    def total_attack(self):
-        return self.attack + self.bonus_attack
-
-    def total_health(self):
-        return self.health + self.bonus_health
-
-    def take_damage(self, damage):
-        # returns if fainted
-        self.bonus_health -= damage
-        return self.total_health() <= 0
-
-    def handle_event(self, event, **kwargs):
-        self.data.handle_event(self, event, **kwargs)
-        if self.food is not None:
-            self.food.handle_event(self, event, **kwargs)
 
     def __repr__(self):
         food_repr = f", {self.food.__class__.__name__}" if self.food is not None else ""

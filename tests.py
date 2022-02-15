@@ -45,7 +45,7 @@ class TestEverything(unittest.TestCase):
         game.p1.shop[:2] = [Buyable(pets.Fish()), Buyable(pets.Fish())]
         game.step(Buy(0, 1))
         game.step(Buy(1, 1))
-        assert str(game.p1.pets) == "[Beaver(3, 3), Fish(5, 6)]"
+        self.assertEqual(str(game.p1.pets), "[Beaver(3, 3), Fish(5, 6)]")
 
     def test_horse(self):
         game = Game()
