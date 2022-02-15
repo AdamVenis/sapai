@@ -65,10 +65,10 @@ class Buy:
 
             for pet in player.pets:
                 pet.data.handle_event(
-                    pet, Event.BUY, source=target_pet, friends=player.pets
+                    pet, Event.BUY, source=target_pet, friends=player.pets, lost_last_turn=player.lost_last_turn
                 )
                 pet.data.handle_event(
-                    pet, Event.SUMMON, source=target_pet, friends=player.pets
+                    pet, Event.SUMMON, source=target_pet, friends=player.pets, lost_last_turn=player.lost_last_turn
                 )
 
         elif isinstance(purchased.data, ConsumableFood):
@@ -180,6 +180,7 @@ class Player:
         self.shop = []
         self.money = 0
         self.health = health
+        self.lost_last_turn = False
 
     def get_pets_for_battle(self):
         return [pet.to_battle_pet() for pet in self.pets]
@@ -287,6 +288,8 @@ class Game:
         battle_result = self.resolve_battle()
         if self.verbose:
             print(self.round, self.p1.health, self.p2.health, battle_result)
+
+        self.p1.lost_last_turn, self.p2.lost_last_turn = False, False
         if battle_result == BattleResult.P1_WIN:
             lose_round(self.p2, self.round)
         elif battle_result == BattleResult.P2_WIN:
@@ -313,13 +316,15 @@ class Game:
             for pet in p2_pets:
                 pet.handle_event(Event.BEFORE_ATTACK, friends=p2_pets, enemies=p1_pets)
 
-            p1_fainted = p1_pets[-1].take_damage(p2_pets[-1].total_attack())
-            p2_fainted = p2_pets[-1].take_damage(p1_pets[-1].total_attack())
+            p1_damage = p1_pets[-1].total_attack()
+            p2_damage = p2_pets[-1].total_attack()
+            p1_pets[-1].take_damage(p2_damage)
+            p2_pets[-1].take_damage(p1_damage)
 
             for pet in p1_pets:
-                pet.handle_event(Event.HURT, source=p1_pets[-1], friends=p1_pets)
+                pet.handle_event(Event.HURT, damage=p2_damage, source=p1_pets[-1], friends=p1_pets)
             for pet in p2_pets:
-                pet.handle_event(Event.HURT, source=p2_pets[-1], friends=p2_pets)
+                pet.handle_event(Event.HURT, damage=p1_damage, source=p2_pets[-1], friends=p2_pets)
 
             for pet in p1_pets:
                 pet.handle_event(
@@ -338,12 +343,12 @@ class Game:
                     enemies=p1_pets,
                 )
 
-            if p1_fainted and p1_pets:
+            if p1_pets and p1_pets[-1].total_health() <= 0:
                 source = p1_pets.pop()  # FIXME - if meat kills, this will unintentionally double kill
                 source.handle_event(
                     Event.FAINT,
                     source=source,
-                    index=4,
+                    index=len(p1_pets),
                     friends=p1_pets,
                     enemies=p2_pets,
                 )
@@ -351,16 +356,16 @@ class Game:
                     pet.handle_event(
                         Event.FAINT,
                         source=source,
-                        index=4,
+                        index=len(p1_pets),
                         friends=p1_pets,
                         enemies=p2_pets,
                     )
-            if p2_fainted and p2_pets:
+            if p2_pets and p2_pets[-1].total_health() <= 0:
                 source = p2_pets.pop()
                 source.handle_event(
                     Event.FAINT,
                     source=source,
-                    index=4,
+                    index=len(p2_pets),
                     friends=p2_pets,
                     enemies=p1_pets,
                 )
@@ -368,7 +373,7 @@ class Game:
                     pet.handle_event(
                         Event.FAINT,
                         source=source,
-                        index=4,
+                        index=len(p2_pets),
                         friends=p2_pets,
                         enemies=p1_pets,
                     )
@@ -396,7 +401,11 @@ class Game:
 
         if type(action) == EndTurn:
             self.current_player_index = (self.current_player_index + 1) % 2
-            if self.current_player_index == 0:
+            if self.current_player_index == 0:            
+                for player in self.players:
+                    for pet in player.pets:
+                        pet.handle_event(Event.END_TURN, friends=player.pets)
+
                 self.finish_round()
                 self.round += 1
                 self.start_round()
@@ -427,3 +436,4 @@ def lose_round(player, round):
         player.health -= 2
     else:
         player.health -= 3
+    player.lost_last_turn = True

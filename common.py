@@ -58,9 +58,7 @@ class Pet:
         )
 
     def take_damage(self, damage):
-        # returns if fainted
         self.bonus_health -= damage
-        return self.total_health() <= 0
 
     def handle_event(self, event, **kwargs):
         self.data.handle_event(self, event, **kwargs)
@@ -109,10 +107,11 @@ class EquippableFood:
 
 
 def take_damage(pet, damage, friends, enemies):
-    fainted = pet.take_damage(damage)
+    pet.take_damage(damage)
+    fainted = pet.total_health() <= 0
 
     for friend in friends:
-        friend.handle_event(Event.HURT, source=pet, friends=friends, enemies=enemies)
+        friend.handle_event(Event.HURT, source=pet, damage=damage, friends=friends, enemies=enemies)
 
     if fainted:
         faint(pet, friends, enemies)

@@ -21,10 +21,7 @@ PLAN
     X tier 1 food
     X tier 2 pets
     X tier 2 food
-    - tier 3 pets
-        NOT DONE: Badger Blowfish Camel Dog Giraffe Kangaroo Ox Rabbit Sheep Snail  
-        DONE:
-        CURRENTLY: Turtle
+    X fuzz testing tier 2 pets
     - tier 3 food
     - all the pets + effects
     - better visualization of the game
@@ -38,7 +35,10 @@ PLAN
 5. profit
 
 CURRENT TASK:
-    - fuzz testing tier 2 units
+    - tier 3 pets
+        NOT DONE:  Blowfish Camel Dog Kangaroo Ox Rabbit   
+        DONE: Turtle Giraffe Sheep Snail Badger
+        CURRENTLY: 
 
 SERIOUS BUGS:
 - general concerns over resolution ordering
