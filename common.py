@@ -83,7 +83,8 @@ class Pet:
         return level_up
 
     def __repr__(self):
-        return f"{self.data.__class__.__name__}({self.total_attack()}, {self.total_health()})"
+        food_repr = f", {self.food.__class__.__name__}" if self.food is not None else ""
+        return f"{self.data.__class__.__name__}({self.total_attack()}, {self.total_health()}{food_repr})"
 
 
 class BattlePet:
@@ -134,20 +135,20 @@ class EquippableFood:
     pass
 
 
-def take_damage(pet, damage, friends):
+def take_damage(pet, damage, friends, enemies):
     fainted = pet.take_damage(damage)
 
     for friend in friends:
-        friend.handle_event(Event.HURT, source=pet, friends=friends)
+        friend.handle_event(Event.HURT, source=pet, friends=friends, enemies=enemies)
 
     if fainted:
-        faint(pet, friends)
+        faint(pet, friends, enemies)
 
 
-def faint(pet, friends):
+def faint(pet, friends, enemies):
     index = friends.index(pet)
     del friends[index]
-    pet.handle_event(Event.FAINT, source=pet, index=index, friends=friends)
+    pet.handle_event(Event.FAINT, source=pet, index=index, friends=friends, enemies=enemies)
     for friend in friends:
         friend.handle_event(
             Event.FAINT,

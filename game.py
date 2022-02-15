@@ -33,7 +33,7 @@ class Buy:
         if isinstance(purchased.data, PetData):
             if self.target_index >= len(player.pets):
                 return True
-                
+
             target_pet = player.pets[self.target_index]
             if target_pet.level == 3 or target_pet.data != purchased.data:
                 return False
@@ -61,9 +61,8 @@ class Buy:
                     player.add_bonus_unit(game.round)
             else:
                 player.pets.append(new_pet)
+                target_pet = player.pets[-1]
 
-            # in case there was a combine and the reference changed
-            target_pet = player.pets[self.target_index]  
             for pet in player.pets:
                 pet.data.handle_event(
                     pet, Event.BUY, source=target_pet, friends=player.pets
@@ -73,7 +72,7 @@ class Buy:
                 )
 
         elif isinstance(purchased.data, ConsumableFood):
-            target_pet = player.pets[self.target_index]  
+            target_pet = player.pets[self.target_index]
             for pet in player.pets:
                 pet.data.handle_event(
                     pet, Event.EAT, food=purchased.data, target=target_pet
@@ -81,7 +80,7 @@ class Buy:
             purchased.data.consume(pet, friends=player.pets)
 
         elif isinstance(purchased.data, EquippableFood):
-            target_pet = player.pets[self.target_index]  
+            target_pet = player.pets[self.target_index]
             for pet in player.pets:
                 pet.data.handle_event(
                     pet, Event.EAT, food=purchased.data, target=target_pet
@@ -95,7 +94,9 @@ class Reposition:
     target_index: int
 
     def valid(self, player, game):
-        return self.source_index < len(player.pets) and self.target_index < len(player.pets)
+        return self.source_index < len(player.pets) and self.target_index < len(
+            player.pets
+        )
 
     def act(self, player, game):
         source_pet = player.pets[self.source_index]
@@ -141,7 +142,9 @@ class Combine:
     target_index: int
 
     def valid(self, player, game):
-        if self.source_index >= len(player.pets) or self.target_index >= len(player.pets):
+        if self.source_index >= len(player.pets) or self.target_index >= len(
+            player.pets
+        ):
             return False
 
         pet1, pet2 = player.pets[self.source_index], player.pets[self.target_index]
@@ -306,9 +309,9 @@ class Game:
                 print("p2:", p2_pets)
 
             for pet in p1_pets:
-                pet.handle_event(Event.BEFORE_ATTACK, friends=p1_pets)
+                pet.handle_event(Event.BEFORE_ATTACK, friends=p1_pets, enemies=p2_pets)
             for pet in p2_pets:
-                pet.handle_event(Event.BEFORE_ATTACK, friends=p2_pets)
+                pet.handle_event(Event.BEFORE_ATTACK, friends=p2_pets, enemies=p1_pets)
 
             p1_fainted = p1_pets[-1].take_damage(p2_pets[-1].total_attack())
             p2_fainted = p2_pets[-1].take_damage(p1_pets[-1].total_attack())
@@ -323,6 +326,7 @@ class Game:
                     Event.AFTER_ATTACK,
                     source=p1_pets[-1],
                     target=p2_pets[-1],
+                    friends=p1_pets,
                     enemies=p2_pets,
                 )
             for pet in p2_pets:
@@ -330,11 +334,12 @@ class Game:
                     Event.AFTER_ATTACK,
                     source=p2_pets[-1],
                     target=p1_pets[-1],
+                    friends=p2_pets,
                     enemies=p1_pets,
                 )
 
-            if p1_fainted:
-                source = p1_pets.pop()
+            if p1_fainted and p1_pets:
+                source = p1_pets.pop()  # FIXME - if meat kills, this will unintentionally double kill
                 source.handle_event(
                     Event.FAINT,
                     source=source,
@@ -350,7 +355,7 @@ class Game:
                         friends=p1_pets,
                         enemies=p2_pets,
                     )
-            if p2_fainted:
+            if p2_fainted and p2_pets:
                 source = p2_pets.pop()
                 source.handle_event(
                     Event.FAINT,

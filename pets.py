@@ -116,16 +116,17 @@ class Mosquito(PetData):
     @staticmethod
     def handle_event(self, event, **kwargs):
         if event == Event.START_BATTLE:
+            friends = kwargs["friends"]
             enemies = kwargs["enemies"]
             if enemies:
                 if len(enemies) < self.level:
                     for enemy in enemies:
-                        take_damage(enemy, 1, enemies)
+                        take_damage(enemy, 1, enemies, friends)
                         # FIXME - if this hits a flamingo, should the flamingo
                         # buff the ally before the second instance lands?
                 else:
                     for enemy in random.sample(enemies, self.level):
-                        take_damage(enemy, 1, enemies)
+                        take_damage(enemy, 1, enemies, friends)
 
 
 @dataclass
@@ -208,11 +209,12 @@ class Elephant(PetData):
     def handle_event(self, event, **kwargs):
         if event == Event.BEFORE_ATTACK:
             friends = kwargs["friends"]
+            enemies = kwargs["enemies"]
             if friends[-1] == self:
                 for i in range(
                     len(friends) - 2, max(-1, len(friends) - 3 - self.level), -1
                 ):
-                    take_damage(friends[i], 1, friends)
+                    take_damage(friends[i], 1, friends, enemies)
 
 
 @dataclass
@@ -236,9 +238,12 @@ class Hedgehog(PetData):
     def handle_event(self, event, **kwargs):
         if event == Event.FAINT:
             if kwargs["source"] == self:
+                friends = kwargs["friends"]
                 enemies = kwargs["enemies"]
+                if enemies is None:
+                    return
                 for enemy in enemies:
-                    take_damage(enemy, 2 * self.level, enemies)
+                    take_damage(enemy, 2 * self.level, enemies, friends)
                     # FIXME - i think these instances should all land before subsequent
                     # events are emitted (like faints)
 
@@ -273,6 +278,8 @@ class Rat(PetData):
         if event == Event.FAINT:
             if kwargs["source"] == self:
                 enemies = kwargs["enemies"]
+                if enemies is None:
+                    return
                 for _ in range(self.level):
                     if len(enemies) < 5:
                         enemies.append(BattlePet(Pet(DirtyRat())))
@@ -340,13 +347,146 @@ class Swan(PetData):
 
 
 @dataclass
+class Badger(PetData):
+    attack = 5
+    health = 4
+    tier = 3
+
+    @staticmethod
+    def handle_event(self, event, **kwargs):
+        if event == Event.START_ROUND:
+            if kwargs["source"] == self:
+                kwargs["player"].money += self.level
+
+
+@dataclass
+class Blowfish(PetData):
+    attack = 3
+    health = 5
+    tier = 3
+
+    @staticmethod
+    def handle_event(self, event, **kwargs):
+        if event == Event.START_ROUND:
+            if kwargs["source"] == self:
+                kwargs["player"].money += self.level
+
+
+@dataclass
+class Camel(PetData):
+    attack = 2
+    health = 5
+    tier = 3
+
+    @staticmethod
+    def handle_event(self, event, **kwargs):
+        if event == Event.START_ROUND:
+            if kwargs["source"] == self:
+                kwargs["player"].money += self.level
+
+
+@dataclass
+class Dog(PetData):
+    attack = 2
+    health = 2
+    tier = 3
+
+    @staticmethod
+    def handle_event(self, event, **kwargs):
+        if event == Event.START_ROUND:
+            if kwargs["source"] == self:
+                kwargs["player"].money += self.level
+
+
+@dataclass
 class Giraffe(PetData):
     attack = 2
     health = 5
     tier = 3
 
-    def effect(self):
-        pass  # FIXME
+    @staticmethod
+    def handle_event(self, event, **kwargs):
+        if event == Event.START_ROUND:
+            if kwargs["source"] == self:
+                kwargs["player"].money += self.level
+
+
+@dataclass
+class Kangaroo(PetData):
+    attack = 1
+    health = 2
+    tier = 3
+
+    @staticmethod
+    def handle_event(self, event, **kwargs):
+        if event == Event.START_ROUND:
+            if kwargs["source"] == self:
+                kwargs["player"].money += self.level
+
+
+@dataclass
+class Ox(PetData):
+    attack = 1
+    health = 4
+    tier = 3
+
+    @staticmethod
+    def handle_event(self, event, **kwargs):
+        if event == Event.START_ROUND:
+            if kwargs["source"] == self:
+                kwargs["player"].money += self.level
+
+
+@dataclass
+class Rabbit(PetData):
+    attack = 3
+    health = 2
+    tier = 3
+
+    @staticmethod
+    def handle_event(self, event, **kwargs):
+        if event == Event.START_ROUND:
+            if kwargs["source"] == self:
+                kwargs["player"].money += self.level
+
+
+@dataclass
+class Sheep(PetData):
+    attack = 2
+    health = 2
+    tier = 3
+
+    @staticmethod
+    def handle_event(self, event, **kwargs):
+        if event == Event.START_ROUND:
+            if kwargs["source"] == self:
+                kwargs["player"].money += self.level
+
+
+@dataclass
+class Snail(PetData):
+    attack = 2
+    health = 2
+    tier = 3
+
+    @staticmethod
+    def handle_event(self, event, **kwargs):
+        if event == Event.START_ROUND:
+            if kwargs["source"] == self:
+                kwargs["player"].money += self.level
+
+
+@dataclass
+class Turtle(PetData):
+    attack = 1
+    health = 2
+    tier = 3
+
+    @staticmethod
+    def handle_event(self, event, **kwargs):
+        if event == Event.START_ROUND:
+            if kwargs["source"] == self:
+                kwargs["player"].money += self.level
 
 
 @dataclass
@@ -422,35 +562,45 @@ class MeatBone(EquippableFood):
         if event == Event.AFTER_ATTACK:
             if kwargs["source"] == self:
                 target = kwargs["target"]
+                friends = kwargs["friends"]
+                enemies = kwargs["enemies"]
                 if target.total_health() >= 0:
-                    take_damage(target, 5, kwargs["enemies"])
+                    take_damage(target, 5, enemies, friends)
 
 
 @dataclass
 class SleepingPill(ConsumableFood):
     @staticmethod
     def consume(pet, **kwargs):
-        faint(pet, kwargs["friends"])
+        faint(pet, friends=kwargs["friends"], enemies=None)
 
 
 @dataclass
 class Garlic(EquippableFood):
-    pass
+    @staticmethod
+    def handle_event(self, event, **kwargs):
+        pass
 
 
 @dataclass
 class Salad(ConsumableFood):
-    pass
+    @staticmethod
+    def consume(pet, **kwargs):
+        pass
 
 
 @dataclass
 class Chocolate(ConsumableFood):
-    pass
+    @staticmethod
+    def consume(pet, **kwargs):
+        pass
 
 
 @dataclass
 class Melon(EquippableFood):
-    pass
+    @staticmethod
+    def handle_event(self, event, **kwargs):
+        pass
 
 
 def cumulative_dict(source):
@@ -488,7 +638,19 @@ PACK1_PETS = {
         Spider(),
         Swan(),
     ],
-    3: [Giraffe()],
+    3: [
+        Badger(),
+        Blowfish(),
+        Camel(),
+        Dog(),
+        Giraffe(),
+        Kangaroo(),
+        Ox(),
+        Rabbit(),
+        Sheep(),
+        Snail(),
+        Turtle(),
+    ],
     4: [Deer()],
     5: [Crocodile()],
     6: [Dragon()],
