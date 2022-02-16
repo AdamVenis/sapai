@@ -227,11 +227,25 @@ class TestEverything(unittest.TestCase):
         self.assertEqual(game.resolve_battle(), BattleResult.P1_WIN)
 
     def test_ox(self):
-        game = Game(verbose=True)
+        game = Game()
         game.p1.pets = [Pet(pets.Ox()), Pet(pets.Cricket())]
         game.p2.pets = [Pet(pets.Peacock()), Pet(pets.Peacock()), Pet(pets.Peacock())]
         self.assertEqual(game.resolve_battle(), BattleResult.DRAW)
 
+    def test_dog(self):
+        game = Game()
+        game.p1.pets = [Pet(pets.Dog())]
+        game.step(Buy(0, 1))
+        dog = game.p1.pets[0]
+        self.assertEqual(dog.total_attack() + dog.total_health(), 5)
+
+    def test_rabbit(self):
+        game = Game()
+        game.p1.pets = [Pet(pets.Rabbit()), Pet(pets.Beaver())]
+        game.p1.pets[0].level = 2
+        game.p1.shop[-1] = Buyable(pets.Apple())
+        game.step(Buy(len(game.p1.shop) - 1, 1))
+        self.assertEqual(game.p1.pets[1].total_health(), 5)
 
 if __name__ == "__main__":
     unittest.main()

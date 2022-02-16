@@ -375,7 +375,6 @@ class Game:
                 index = len(p1_pets)
                 source.handle_event(
                     Event.SELF_FAINT,
-                    source=source,
                     index=index,
                     friends=p1_pets,
                     enemies=p2_pets,
@@ -393,7 +392,6 @@ class Game:
                 index = len(p2_pets)
                 source.handle_event(
                     Event.SELF_FAINT,
-                    source=source,
                     index=index,
                     friends=p2_pets,
                     enemies=p1_pets,

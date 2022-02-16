@@ -418,9 +418,13 @@ class Dog(PetData):
 
     @staticmethod
     def handle_event(self, event, **kwargs):
-        if event == Event.START_ROUND:
-            if kwargs["source"] == self:
-                kwargs["player"].money += self.level
+        if event == Event.SUMMON:
+            source = kwargs["source"]
+            if source != self:
+                if random.random() < 0.5:
+                    self.bonus_attack += self.level
+                else:
+                    self.bonus_health += self.level
 
 
 @dataclass
@@ -480,9 +484,10 @@ class Rabbit(PetData):
 
     @staticmethod
     def handle_event(self, event, **kwargs):
-        if event == Event.START_ROUND:
-            if kwargs["source"] == self:
-                kwargs["player"].money += self.level
+        if event == Event.EAT:
+            target_pet = kwargs["target"]
+            if target_pet != self:
+                target_pet.bonus_health += self.level
 
 
 @dataclass
