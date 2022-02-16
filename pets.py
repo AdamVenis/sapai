@@ -27,12 +27,8 @@ class Beaver(PetData):
     def handle_event(self, event):
         if isinstance(event, SellEvent):
             if event.source == event.self:
-                if len(event.friends) < 2:
-                    for friend in event.friends:
-                        friend.bonus_health += event.self.level
-                else:
-                    for friend in random.sample(event.friends, 2):
-                        friend.bonus_health += event.self.level
+                for friend in random.sample(event.friends, min(2, len(event.friends))):
+                    friend.bonus_health += event.self.level
 
 
 @dataclass
@@ -101,14 +97,10 @@ class Mosquito(PetData):
     def handle_event(self, event):
         if isinstance(event, StartBattleEvent):
             if event.enemies:
-                if len(event.enemies) < event.self.level:
-                    for enemy in event.enemies:
-                        take_damage(enemy, 1, event.enemies, event.friends)
-                        # FIXME - if this hits a flamingo, should the flamingo
-                        # buff the ally before the second instance lands?
-                else:
-                    for enemy in random.sample(event.enemies, event.self.level):
-                        take_damage(enemy, 1, event.enemies, event.friends)
+                for enemy in random.sample(event.enemies, min(event.self.level, len(event.enemies))):
+                    take_damage(enemy, 1, event.enemies, event.friends)
+                    # FIXME - if this hits a flamingo, should the flamingo
+                    # buff the ally before the second instance lands?
 
 
 @dataclass
@@ -200,9 +192,9 @@ class Flamingo(PetData):
         if isinstance(event, SelfFaintEvent):
             if event.friends:
                 for i in range(2):
-                    if event.index - i >= 0:
-                        event.friends[event.index - i].bonus_attack += event.self.level
-                        event.friends[event.index - i].bonus_health += event.self.level
+                    if event.index - 1 - i >= 0:
+                        event.friends[event.index - 1 - i].bonus_attack += event.self.level
+                        event.friends[event.index - 1 - i].bonus_health += event.self.level
 
 
 @dataclass
@@ -271,12 +263,8 @@ class Shrimp(PetData):
     def handle_event(self, event):
         if isinstance(event, SellEvent):
             if event.source != event.self:
-                if len(event.friends) < 2:
-                    for friend in event.friends:
-                        friend.bonus_health += event.self.level
-                else:
-                    for friend in random.sample(event.friends, 1):
-                        friend.bonus_health += event.self.level
+                for friend in random.sample(event.friends, min(1, len(event.friends))):
+                    friend.bonus_health += event.self.level
 
 
 @dataclass

@@ -23,6 +23,8 @@ PLAN
     X tier 2 food
     X fuzz testing tier 2 pets
     X tier 3 pets
+    X refactor events to be classes
+    X refactor .sample calls
     - tier 3 food
     - all the pets + effects
     - better visualization of the game
@@ -39,8 +41,7 @@ PLAN
 5. profit
 
 CURRENT TASK:
-    - refactor events to be classes
-(maybe refactor the .sample calls like in Beaver)
+ 
 
 BUGS:
 - general concerns over resolution ordering
