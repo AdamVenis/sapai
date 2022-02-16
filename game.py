@@ -303,6 +303,7 @@ class Game:
         elif battle_result == BattleResult.P2_WIN:
             lose_round(self.p1, self.round)
 
+
     def resolve_battle(self):
         p1_pets = self.p1.get_pets_for_battle()
         p2_pets = self.p2.get_pets_for_battle()
@@ -373,12 +374,7 @@ class Game:
                 # FIXME - if meat kills, this will unintentionally double kill
                 source = p1_pets.pop()
                 index = len(p1_pets)
-                source.handle_event(
-                    Event.SELF_FAINT,
-                    index=index,
-                    friends=p1_pets,
-                    enemies=p2_pets,
-                )
+                source.handle_event_object(SelfFaintEvent(source, index, p1_pets, p2_pets))
                 for pet in p1_pets:
                     pet.handle_event(
                         Event.FRIEND_FAINT,
@@ -390,12 +386,7 @@ class Game:
             if p2_pets and p2_pets[-1].total_health() <= 0:
                 source = p2_pets.pop()
                 index = len(p2_pets)
-                source.handle_event(
-                    Event.SELF_FAINT,
-                    index=index,
-                    friends=p2_pets,
-                    enemies=p1_pets,
-                )
+                source.handle_event_object(SelfFaintEvent(source, index, p2_pets, p1_pets))
                 for pet in p2_pets:
                     pet.handle_event(
                         Event.FRIEND_FAINT,

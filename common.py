@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import enum
+import typing
 
 MAX_SHOP_SIZE = 7
 MAX_PETS = 5
@@ -20,6 +21,50 @@ class Event(enum.Enum):
     START_ROUND = 11
     AFTER_ATTACK = 12
     FRIEND_FAINT = 13
+
+
+@dataclass
+class SelfFaintEvent:
+    self: typing.Any  # FIXME - make this PetData or something?
+    index: int
+    friends: list
+    enemies: list
+
+class SummonEvent:
+    pass
+
+class BeforeAttackEvent:
+    pass
+
+class HurtEvent:
+    pass
+
+class BuyEvent:
+    pass
+
+class SellEvent:
+    pass
+
+class LevelUpEvent:
+    pass
+
+class EndTurnEvent:
+    pass
+
+class StartBattleEvent:
+    pass
+
+class EatEvent:
+    pass
+
+class StartRoundEvent:
+    pass
+
+class AfterAttackEvent:
+    pass
+
+class FriendFaintEvent:
+    pass
 
 
 class Pet:
@@ -62,6 +107,11 @@ class Pet:
         if self.food is not None:
             self.food.handle_event(self, event, **kwargs)
 
+    def handle_event_object(self, event):
+        self.data.handle_event_object(event)
+        if self.food is not None:
+            self.food.handle_event_object(event)
+
     def combine(self, other):
         self.copies += 1
 
@@ -94,13 +144,23 @@ class PetData:
         # self is the pet whose effect we're checking
         pass
 
+    def handle_event_object(self, event):
+        pass
+
 
 class ConsumableFood:
-    pass
+    @staticmethod
+    def consume(pet, **kwargs):
+        pass
 
 
 class EquippableFood:
-    pass
+    @staticmethod
+    def handle_event(self, event, **kwargs):
+        pass
+
+    def handle_event_object(self, event):
+        pass
 
 
 def take_damage(pet, damage, friends, enemies):
@@ -120,9 +180,8 @@ def take_damage(pet, damage, friends, enemies):
 def faint(pet, friends, enemies):
     index = friends.index(pet)
     del friends[index]
-    pet.handle_event(
-        Event.SELF_FAINT, source=pet, index=index, friends=friends, enemies=enemies
-    )
+    pet.handle_event_object(SelfFaintEvent(pet, index, friends, enemies))
+
     for friend in friends:
         friend.handle_event(
             Event.FRIEND_FAINT,

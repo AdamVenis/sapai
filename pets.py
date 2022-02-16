@@ -10,14 +10,12 @@ class Ant(PetData):
     health = 1
     tier = 1
 
-    @staticmethod
-    def handle_event(self, event, **kwargs):
-        if event == Event.SELF_FAINT:
-            friends = kwargs["friends"]
-            if friends:
-                friend = random.choice(friends)
-                friend.bonus_attack += 2 * self.level
-                friend.bonus_health += 1 * self.level
+    def handle_event_object(self, event):
+        if isinstance(event, SelfFaintEvent):
+            if event.friends:
+                friend = random.choice(event.friends)
+                friend.bonus_attack += 2 * event.self.level
+                friend.bonus_health += 1 * event.self.level
 
 
 @dataclass
@@ -45,13 +43,10 @@ class Cricket(PetData):
     health = 2
     tier = 1
 
-    @staticmethod
-    def handle_event(self, event, **kwargs):
-        if event == Event.SELF_FAINT:
-            index = kwargs["index"]
-            friends = kwargs["friends"]
-            if len(friends) < 5:
-                friends.insert(index, Pet(ZombieCricket()))
+    def handle_event_object(self, event):
+        if isinstance(event, SelfFaintEvent):
+            if len(event.friends) < 5:
+                event.friends.insert(event.index, Pet(ZombieCricket()))
                 # FIXME - trigger summon
 
 
@@ -229,15 +224,12 @@ class Hedgehog(PetData):
     health = 2
     tier = 2
 
-    @staticmethod
-    def handle_event(self, event, **kwargs):
-        if event == Event.SELF_FAINT:
-            friends = kwargs["friends"]
-            enemies = kwargs["enemies"]
-            if enemies is None:
+    def handle_event_object(self, event):
+        if isinstance(event, SelfFaintEvent):
+            if event.enemies is None:
                 return
-            for enemy in enemies:
-                take_damage(enemy, 2 * self.level, enemies, friends)
+            for enemy in event.enemies:
+                take_damage(enemy, 2 * event.self.level, event.enemies, event.friends)
                 # FIXME - i think these instances should all land before subsequent
                 # events are emitted (like faints)
 
@@ -267,15 +259,13 @@ class Rat(PetData):
     health = 5
     tier = 2
 
-    @staticmethod
-    def handle_event(self, event, **kwargs):
-        if event == Event.SELF_FAINT:
-            enemies = kwargs["enemies"]
-            if enemies is None:
+    def handle_event_object(self, event):
+        if isinstance(event, SelfFaintEvent):
+            if event.enemies is None:
                 return
-            for _ in range(self.level):
-                if len(enemies) < 5:
-                    enemies.append(Pet(DirtyRat()))
+            for _ in range(event.self.level):
+                if len(event.enemies) < 5:
+                    event.enemies.append(Pet(DirtyRat()))
                     # FIXME - trigger summon
 
 
@@ -311,18 +301,16 @@ class Spider(PetData):
     health = 2
     tier = 2
 
-    @staticmethod
-    def handle_event(self, event, **kwargs):
-        if event == Event.SELF_FAINT:
-            index = kwargs["index"]
-            friends = kwargs["friends"]
-            if len(friends) < 5:
+    def handle_event_object(self, event):
+        if isinstance(event, SelfFaintEvent):
+            if len(event.friends) < 5:
                 spawned_pet = Pet(random.choice(PACK1_PETS[3]))
                 spawned_pet.bonus_attack = 1 - spawned_pet.total_attack()
                 spawned_pet.bonus_health = 1 - spawned_pet.total_health()
-                spawned_pet.level = self.level
-                friends.insert(index, spawned_pet)
+                spawned_pet.level = event.self.level
+                event.friends.insert(event.index, spawned_pet)
                 # FIXME - trigger summon
+
 
 
 @dataclass
@@ -344,37 +332,32 @@ class Badger(PetData):
     health = 4
     tier = 3
 
-    @staticmethod
-    def handle_event(self, event, **kwargs):
-        if event == Event.SELF_FAINT:
-            index = kwargs["index"]
-            friends = kwargs["friends"]
-            enemies = kwargs["enemies"]
-            if index > 0:
+    def handle_event_object(self, event):
+        if isinstance(event, SelfFaintEvent):
+            if event.index > 0:
                 take_damage(
-                    friends[index - 1],
-                    self.total_attack() * self.level,
-                    friends,
-                    enemies,
+                    event.friends[event.index - 1],
+                    event.self.total_attack() * event.self.level,
+                    event.friends,
+                    event.enemies,
                 )
-            if index == len(friends) and enemies is not None:
-                for enemy in reversed(enemies):
+            if event.index == len(event.friends) and event.enemies is not None:
+                for enemy in reversed(event.enemies):
                     if enemy.total_health() > 0:
                         take_damage(
                             enemy,
-                            self.total_attack() * self.level,
-                            enemies,
-                            friends,
+                            event.self.total_attack() * event.self.level,
+                            event.enemies,
+                            event.friends,
                         )
                         break
-            elif index + 1 < len(friends):
+            elif event.index + 1 < len(event.friends):
                 take_damage(
-                    friends[index + 1],
-                    self.total_attack() * self.level,
-                    friends,
-                    enemies,
+                    event.friends[event.index + 1],
+                    event.self.total_attack() * event.self.level,
+                    event.friends,
+                    event.enemies,
                 )
-
 
 @dataclass
 class Blowfish(PetData):
@@ -496,14 +479,11 @@ class Sheep(PetData):
     health = 2
     tier = 3
 
-    @staticmethod
-    def handle_event(self, event, **kwargs):
-        if event == Event.SELF_FAINT:
-            index = kwargs["index"]
-            friends = kwargs["friends"]
+    def handle_event_object(self, event):
+        if isinstance(event, SelfFaintEvent):
             for _ in range(2):
-                if len(friends) < 5:
-                    friends.insert(index, Pet(Ram()))
+                if len(event.friends) < 5:
+                    event.friends.insert(event.index, Pet(Ram()))
                     # FIXME - trigger summon
 
 
@@ -538,14 +518,10 @@ class Turtle(PetData):
     health = 2
     tier = 3
 
-    @staticmethod
-    def handle_event(self, event, **kwargs):
-        if event == Event.SELF_FAINT:
-            index = kwargs["index"]
-            friends = kwargs["friends"]
-            if 0 <= index - 1 < len(friends):
-                friends[index - 1].food = Melon()
-
+    def handle_event_object(self, event):
+        if isinstance(event, SelfFaintEvent):
+            if 0 <= event.index - 1 < len(event.friends):
+                event.friends[event.index - 1].food = Melon()
 
 @dataclass
 class Deer(PetData):
@@ -587,13 +563,10 @@ class Apple(ConsumableFood):
 
 @dataclass
 class Honey(EquippableFood):
-    @staticmethod
-    def handle_event(self, event, **kwargs):
-        if event == Event.SELF_FAINT:
-            index = kwargs["index"]
-            friends = kwargs["friends"]
-            if len(friends) < 5:
-                friends.insert(index, Pet(HoneyBee()))
+    def handle_event_object(self, event):
+        if isinstance(event, SelfFaintEvent):
+            if len(event.friends) < 5:
+                event.friends.insert(event.index, Pet(HoneyBee()))
                 # FIXME - trigger summon
 
 
