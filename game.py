@@ -110,9 +110,7 @@ class Sell:
         for pet in player.pets:
             pet.data.handle_event(SellEvent(pet, sold_pet, player.pets, player))
 
-        sold_pet.data.handle_event(
-            SellEvent(sold_pet, sold_pet, player.pets, player)
-        )
+        sold_pet.data.handle_event(SellEvent(sold_pet, sold_pet, player.pets, player))
         player.money += sold_pet.level
 
 
@@ -289,12 +287,14 @@ class Game:
         p1_pets = self.p1.get_pets_for_battle()
         p2_pets = self.p2.get_pets_for_battle()
 
+        resolution_stack = []
+
         # FIXME go in decreasing order of attack
         for pet in p1_pets:
-            handle_event(StartBattleEvent(pet, p1_pets, p2_pets))
+            StartBattleEvent(pet, p1_pets, p2_pets).handle()
 
         for pet in p2_pets:
-            handle_event(StartBattleEvent(pet, p2_pets, p1_pets))
+            StartBattleEvent(pet, p2_pets, p1_pets).handle()
 
         while p1_pets and p2_pets:
             if self.verbose:
@@ -302,9 +302,9 @@ class Game:
                 print("p2:", p2_pets)
 
             for pet in p1_pets:
-                handle_event(BeforeAttackEvent(pet, p1_pets, p2_pets))
+                BeforeAttackEvent(pet, p1_pets, p2_pets).handle()
             for pet in p2_pets:
-                handle_event(BeforeAttackEvent(pet, p2_pets, p1_pets))
+                BeforeAttackEvent(pet, p2_pets, p1_pets).handle()
 
             if len(p1_pets) == 0 or len(p2_pets) == 0:
                 break
@@ -315,43 +315,35 @@ class Game:
             p2_pets[-1].take_damage(p1_damage)
 
             for pet in p1_pets:
-                handle_event(
-                    HurtEvent(pet, p1_pets[-1], p2_damage, p1_pets, p2_pets)
-                )
+                HurtEvent(pet, p1_pets[-1], p2_damage, p1_pets, p2_pets).handle()
             for pet in p2_pets:
-                handle_event(
-                    HurtEvent(pet, p2_pets[-1], p1_damage, p2_pets, p1_pets)
-                )
+                HurtEvent(pet, p2_pets[-1], p1_damage, p2_pets, p1_pets).handle()
 
             if len(p1_pets) == 0 or len(p2_pets) == 0:
                 break
 
             for pet in p1_pets:
-                handle_event(
-                    AfterAttackEvent(pet, p1_pets[-1], p2_pets[-1], p1_pets, p2_pets)
-                )
+                AfterAttackEvent(
+                    pet, p1_pets[-1], p2_pets[-1], p1_pets, p2_pets
+                ).handle()
             for pet in p2_pets:
-                handle_event(
-                    AfterAttackEvent(pet, p2_pets[-1], p1_pets[-1], p2_pets, p1_pets)
-                )
+                AfterAttackEvent(
+                    pet, p2_pets[-1], p1_pets[-1], p2_pets, p1_pets
+                ).handle()
 
             if p1_pets and p1_pets[-1].total_health() <= 0:
                 # FIXME - if meat kills, this will unintentionally double kill
                 source = p1_pets.pop()
                 index = len(p1_pets)
-                handle_event(
-                    SelfFaintEvent(source, index, p1_pets, p2_pets)
-                )
+                SelfFaintEvent(source, index, p1_pets, p2_pets).handle()
                 for pet in p1_pets:
-                    handle_event(FriendFaintEvent(pet, source, index, p1_pets, p2_pets))
+                    FriendFaintEvent(pet, source, index, p1_pets, p2_pets).handle()
             if p2_pets and p2_pets[-1].total_health() <= 0:
                 source = p2_pets.pop()
                 index = len(p2_pets)
-                handle_event(
-                    SelfFaintEvent(source, index, p2_pets, p1_pets)
-                )
+                SelfFaintEvent(source, index, p2_pets, p1_pets).handle()
                 for pet in p2_pets:
-                    handle_event(FriendFaintEvent(pet, source, index, p2_pets, p1_pets))
+                    FriendFaintEvent(pet, source, index, p2_pets, p1_pets).handle()
 
         if self.verbose:
             print("p1:", p1_pets)
@@ -379,7 +371,7 @@ class Game:
             if self.current_player_index == 0:
                 for player in self.players:
                     for pet in player.pets:
-                        handle_event(EndTurnEvent(pet, player.pets))
+                        EndTurnEvent(pet, player.pets).handle()
 
                 self.finish_round()
                 self.round += 1

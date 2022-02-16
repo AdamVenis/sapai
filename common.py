@@ -88,30 +88,36 @@ class Pet:
 
 
 @dataclass
-class SelfFaintEvent:
+class Event:
     self: Pet
+
+    def handle(self):
+        self.self.data.handle_event(self)
+        if self.self.food is not None:
+            self.self.food.handle_event(self)
+
+
+@dataclass
+class SelfFaintEvent(Event):
     index: int
     friends: list
     enemies: list
 
 
 @dataclass
-class SummonEvent:
-    self: Pet
+class SummonEvent(Event):
     source: Pet
     friends: list
 
 
 @dataclass
-class BeforeAttackEvent:
-    self: Pet
+class BeforeAttackEvent(Event):
     friends: list
     enemies: list
 
 
 @dataclass
-class HurtEvent:
-    self: Pet
+class HurtEvent(Event):
     source: Pet
     damage: int
     friends: list
@@ -119,57 +125,49 @@ class HurtEvent:
 
 
 @dataclass
-class BuyEvent:
-    self: Pet
+class BuyEvent(Event):
     source: Pet
     friends: list
     lost_last_turn: bool
 
 
 @dataclass
-class SellEvent:
-    self: Pet
+class SellEvent(Event):
     source: Pet
     friends: list
     player: typing.Any  # FIXME - actually a Player but annoying to fix
 
 
 @dataclass
-class LevelUpEvent:
-    self: Pet
+class LevelUpEvent(Event):
     source: Pet
     friends: list
 
 
 @dataclass
-class EndTurnEvent:
-    self: Pet
+class EndTurnEvent(Event):
     friends: list
 
 
 @dataclass
-class StartBattleEvent:
-    self: Pet
+class StartBattleEvent(Event):
     friends: list
     enemies: list
 
 
 @dataclass
-class EatEvent:
-    self: Pet
+class EatEvent(Event):
     food: Food
     target: Pet
 
 
 @dataclass
-class StartRoundEvent:
-    self: Pet
+class StartRoundEvent(Event):
     player: typing.Any
 
 
 @dataclass
-class AfterAttackEvent:
-    self: Pet
+class AfterAttackEvent(Event):
     source: Pet
     target: Pet
     friends: list
@@ -177,8 +175,7 @@ class AfterAttackEvent:
 
 
 @dataclass
-class FriendFaintEvent:
-    self: Pet
+class FriendFaintEvent(Event):
     source: Pet
     index: int
     friends: list
@@ -191,7 +188,7 @@ def take_damage(pet, damage, friends, enemies):
     fainted = pet.total_health() <= 0
 
     for friend in friends:
-        handle_event(HurtEvent(friend, pet, damage, friends, enemies))
+        HurtEvent(friend, pet, damage, friends, enemies).handle()
 
     if fainted and pet in friends:
         faint(pet, friends, enemies)
@@ -200,12 +197,7 @@ def take_damage(pet, damage, friends, enemies):
 def faint(pet, friends, enemies):
     index = friends.index(pet)
     del friends[index]
-    handle_event(SelfFaintEvent(pet, index, friends, enemies))
+    SelfFaintEvent(pet, index, friends, enemies).handle()
 
     for friend in friends:
-        handle_event(FriendFaintEvent(friend, pet, index, friends, enemies))
-
-def handle_event(event):
-    event.self.data.handle_event(event)
-    if event.self.food is not None:
-        event.self.food.handle_event(event)
+        FriendFaintEvent(friend, pet, index, friends, enemies).handle()

@@ -97,7 +97,9 @@ class Mosquito(PetData):
     def handle_event(self, event):
         if isinstance(event, StartBattleEvent):
             if event.enemies:
-                for enemy in random.sample(event.enemies, min(event.self.level, len(event.enemies))):
+                for enemy in random.sample(
+                    event.enemies, min(event.self.level, len(event.enemies))
+                ):
                     take_damage(enemy, 1, event.enemies, event.friends)
                     # FIXME - if this hits a flamingo, should the flamingo
                     # buff the ally before the second instance lands?
@@ -193,8 +195,12 @@ class Flamingo(PetData):
             if event.friends:
                 for i in range(2):
                     if event.index - 1 - i >= 0:
-                        event.friends[event.index - 1 - i].bonus_attack += event.self.level
-                        event.friends[event.index - 1 - i].bonus_health += event.self.level
+                        event.friends[
+                            event.index - 1 - i
+                        ].bonus_attack += event.self.level
+                        event.friends[
+                            event.index - 1 - i
+                        ].bonus_health += event.self.level
 
 
 @dataclass
@@ -406,7 +412,6 @@ class Kangaroo(PetData):
                 event.self.bonus_health += 2 * event.self.level
 
 
-
 @dataclass
 class Ox(PetData):
     attack = 1
@@ -418,7 +423,6 @@ class Ox(PetData):
             if event.friends.index(event.self) == event.index - 1:
                 event.self.bonus_attack += 2 * event.self.level
                 event.self.food = Melon()
-
 
 
 @dataclass
