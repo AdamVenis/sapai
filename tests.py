@@ -207,13 +207,30 @@ class TestEverything(unittest.TestCase):
         self.assertEqual(game.p1.pets[0].total_attack(), 3)
         self.assertEqual(game.p1.pets[0].total_health(), 3)
 
-
     def test_honey_badger(self):
         game = Game()
         game.p1.pets = [Pet(pets.Badger())]
         game.p1.pets[0].food = pets.Honey()
         game.p2.pets = [Pet(pets.Pig()), Pet(pets.Pig()), Pet(pets.Pig())]
         self.assertEqual(game.resolve_battle(), BattleResult.P1_WIN)
+
+    def test_kangaroo(self):
+        game = Game()
+        game.p1.pets = [Pet(pets.Kangaroo()), Pet(pets.Beaver())]
+        game.p2.pets = [Pet(pets.Pig()), Pet(pets.Pig())]
+        self.assertEqual(game.resolve_battle(), BattleResult.P1_WIN)
+
+    def test_camel(self):
+        game = Game()
+        game.p1.pets = [Pet(pets.Beaver()), Pet(pets.Camel())]
+        game.p2.pets = [Pet(pets.Pig()), Pet(pets.Pig()), Pet(pets.Pig())]
+        self.assertEqual(game.resolve_battle(), BattleResult.P1_WIN)
+
+    def test_ox(self):
+        game = Game(verbose=True)
+        game.p1.pets = [Pet(pets.Ox()), Pet(pets.Cricket())]
+        game.p2.pets = [Pet(pets.Peacock()), Pet(pets.Peacock()), Pet(pets.Peacock())]
+        self.assertEqual(game.resolve_battle(), BattleResult.DRAW)
 
 
 if __name__ == "__main__":

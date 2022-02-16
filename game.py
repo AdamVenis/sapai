@@ -65,10 +65,18 @@ class Buy:
 
             for pet in player.pets:
                 pet.data.handle_event(
-                    pet, Event.BUY, source=target_pet, friends=player.pets, lost_last_turn=player.lost_last_turn
+                    pet,
+                    Event.BUY,
+                    source=target_pet,
+                    friends=player.pets,
+                    lost_last_turn=player.lost_last_turn,
                 )
                 pet.data.handle_event(
-                    pet, Event.SUMMON, source=target_pet, friends=player.pets, lost_last_turn=player.lost_last_turn
+                    pet,
+                    Event.SUMMON,
+                    source=target_pet,
+                    friends=player.pets,
+                    lost_last_turn=player.lost_last_turn,
                 )
 
         elif isinstance(purchased.data, ConsumableFood):
@@ -316,15 +324,33 @@ class Game:
             for pet in p2_pets:
                 pet.handle_event(Event.BEFORE_ATTACK, friends=p2_pets, enemies=p1_pets)
 
+            if len(p1_pets) == 0 or len(p2_pets) == 0:
+                break
+
             p1_damage = p1_pets[-1].total_attack()
             p2_damage = p2_pets[-1].total_attack()
             p1_pets[-1].take_damage(p2_damage)
             p2_pets[-1].take_damage(p1_damage)
 
             for pet in p1_pets:
-                pet.handle_event(Event.HURT, damage=p2_damage, source=p1_pets[-1], friends=p1_pets)
+                pet.handle_event(
+                    Event.HURT,
+                    damage=p2_damage,
+                    source=p1_pets[-1],
+                    friends=p1_pets,
+                    enemies=p2_pets,
+                )
             for pet in p2_pets:
-                pet.handle_event(Event.HURT, damage=p1_damage, source=p2_pets[-1], friends=p2_pets)
+                pet.handle_event(
+                    Event.HURT,
+                    damage=p1_damage,
+                    source=p2_pets[-1],
+                    friends=p2_pets,
+                    enemies=p1_pets,
+                )
+
+            if len(p1_pets) == 0 or len(p2_pets) == 0:
+                break
 
             for pet in p1_pets:
                 pet.handle_event(
@@ -344,36 +370,39 @@ class Game:
                 )
 
             if p1_pets and p1_pets[-1].total_health() <= 0:
-                source = p1_pets.pop()  # FIXME - if meat kills, this will unintentionally double kill
+                # FIXME - if meat kills, this will unintentionally double kill
+                source = p1_pets.pop()
+                index = len(p1_pets)
                 source.handle_event(
-                    Event.FAINT,
+                    Event.SELF_FAINT,
                     source=source,
-                    index=len(p1_pets),
+                    index=index,
                     friends=p1_pets,
                     enemies=p2_pets,
                 )
                 for pet in p1_pets:
                     pet.handle_event(
-                        Event.FAINT,
+                        Event.FRIEND_FAINT,
                         source=source,
-                        index=len(p1_pets),
+                        index=index,
                         friends=p1_pets,
                         enemies=p2_pets,
                     )
             if p2_pets and p2_pets[-1].total_health() <= 0:
                 source = p2_pets.pop()
+                index = len(p2_pets)
                 source.handle_event(
-                    Event.FAINT,
+                    Event.SELF_FAINT,
                     source=source,
-                    index=len(p2_pets),
+                    index=index,
                     friends=p2_pets,
                     enemies=p1_pets,
                 )
                 for pet in p2_pets:
                     pet.handle_event(
-                        Event.FAINT,
+                        Event.FRIEND_FAINT,
                         source=source,
-                        index=len(p2_pets),
+                        index=index,
                         friends=p2_pets,
                         enemies=p1_pets,
                     )
@@ -401,7 +430,7 @@ class Game:
 
         if type(action) == EndTurn:
             self.current_player_index = (self.current_player_index + 1) % 2
-            if self.current_player_index == 0:            
+            if self.current_player_index == 0:
                 for player in self.players:
                     for pet in player.pets:
                         pet.handle_event(Event.END_TURN, friends=player.pets)

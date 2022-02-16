@@ -136,10 +136,10 @@ class HeuristicAgent:
 class Env:
     def __init__(self, **kwargs):
         self.kwargs = kwargs
-        self.reset(**kwargs)
+        self.reset()
 
-    def reset(self, **kwargs):
-        self.game = Game(**kwargs)
+    def reset(self):
+        self.game = Game(**self.kwargs)
 
 
 def winrate(env, agents, num_episodes):
@@ -152,7 +152,7 @@ def winrate(env, agents, num_episodes):
     return {k: v / num_episodes for k, v in results.items()}
 
 
-def evaluate_winrates(num_episodes):
+def evaluate_winrates(env, num_episodes):
     print(winrate(env, [HeuristicAgent(), BuyStrongestAgent()], num_episodes))  # ~54%
     print(winrate(env, [BuyStrongestAgent(), BuyAgent()], num_episodes))  # ~52%
     print(winrate(env, [BuyAgent(), RandomAgent()], num_episodes))  # 99%
@@ -160,6 +160,6 @@ def evaluate_winrates(num_episodes):
 
 
 if __name__ == "__main__":
-    env = Env(verbose=False)
+    env = Env()
 
-    evaluate_winrates(num_episodes=100)
+    evaluate_winrates(env, num_episodes=100)

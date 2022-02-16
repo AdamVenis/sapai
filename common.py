@@ -6,7 +6,7 @@ MAX_PETS = 5
 
 
 class Event(enum.Enum):
-    FAINT = 0
+    SELF_FAINT = 0
     SUMMON = 1
     BEFORE_ATTACK = 2
     HURT = 3
@@ -19,6 +19,7 @@ class Event(enum.Enum):
     EAT = 10
     START_ROUND = 11
     AFTER_ATTACK = 12
+    FRIEND_FAINT = 13
 
 
 class Pet:
@@ -48,14 +49,10 @@ class Pet:
         return pet
 
     def total_attack(self):
-        return (
-            self.attack + self.copies - 1 + self.bonus_attack + self.battle_attack
-        )
+        return self.attack + self.copies - 1 + self.bonus_attack + self.battle_attack
 
     def total_health(self):
-        return (
-            self.health + self.copies - 1 + self.bonus_health + self.battle_health
-        )
+        return self.health + self.copies - 1 + self.bonus_health + self.battle_health
 
     def take_damage(self, damage):
         self.bonus_health -= damage
@@ -107,23 +104,28 @@ class EquippableFood:
 
 
 def take_damage(pet, damage, friends, enemies):
+    # print(pet, 'taking damage', damage, friends, enemies)
     pet.take_damage(damage)
     fainted = pet.total_health() <= 0
 
     for friend in friends:
-        friend.handle_event(Event.HURT, source=pet, damage=damage, friends=friends, enemies=enemies)
+        friend.handle_event(
+            Event.HURT, source=pet, damage=damage, friends=friends, enemies=enemies
+        )
 
-    if fainted:
+    if fainted and pet in friends:
         faint(pet, friends, enemies)
 
 
 def faint(pet, friends, enemies):
     index = friends.index(pet)
     del friends[index]
-    pet.handle_event(Event.FAINT, source=pet, index=index, friends=friends, enemies=enemies)
+    pet.handle_event(
+        Event.SELF_FAINT, source=pet, index=index, friends=friends, enemies=enemies
+    )
     for friend in friends:
         friend.handle_event(
-            Event.FAINT,
+            Event.FRIEND_FAINT,
             source=pet,
             index=4,
             friends=friends,

@@ -25,6 +25,9 @@ PLAN
     - tier 3 food
     - all the pets + effects
     - better visualization of the game
+    - centralize the resolution stack
+    - refactor events to be classes
+    - learn more about accurate resolution orders
 
 4. create and train a reinforcement learning agent
     X make random agent functional
@@ -36,12 +39,14 @@ PLAN
 
 CURRENT TASK:
     - tier 3 pets
-        NOT DONE:  Blowfish Camel Dog Kangaroo Ox Rabbit   
-        DONE: Turtle Giraffe Sheep Snail Badger
+        NOT DONE: Dog Rabbit 
+        DONE: Turtle Giraffe Sheep Snail Badger Blowfish Kangaroo Camel Ox
         CURRENTLY: 
 
 SERIOUS BUGS:
 - general concerns over resolution ordering
+- HURT means took damage and didn't die
 
 QUESTIONS:
 - level 2 peacock, use up a charge out of battle, buy another peacock - does it get the charge back?
+- does blowfish damage trigger when it dies? more generally, does 'hurt' imply 'not killed' everywhere
