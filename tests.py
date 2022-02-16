@@ -247,5 +247,6 @@ class TestEverything(unittest.TestCase):
         game.step(Buy(len(game.p1.shop) - 1, 1))
         self.assertEqual(game.p1.pets[1].total_health(), 5)
 
+
 if __name__ == "__main__":
     unittest.main()
