@@ -40,10 +40,12 @@ PLAN
 
 CURRENT TASK:
     - refactor events to be classes
+(maybe refactor the .sample calls like in Beaver)
 
-SERIOUS BUGS:
+BUGS:
 - general concerns over resolution ordering
 - HURT means took damage and didn't die
+- 1.5x for e.g. dodo rounds to nearest int, not always down(?)
 
 QUESTIONS:
 - level 2 peacock, use up a charge out of battle, buy another peacock - does it get the charge back?

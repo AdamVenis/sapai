@@ -53,10 +53,7 @@ class Buy:
                 level_up = target_pet.combine(new_pet)
                 if level_up:
                     target_pet.data.handle_event(
-                        target_pet,
-                        Event.LEVEL_UP,
-                        source=target_pet,
-                        friends=player.pets,
+                        LevelUpEvent(target_pet, target_pet, player.pets)
                     )
                     player.add_bonus_unit(game.round)
             else:
@@ -65,35 +62,19 @@ class Buy:
 
             for pet in player.pets:
                 pet.data.handle_event(
-                    pet,
-                    Event.BUY,
-                    source=target_pet,
-                    friends=player.pets,
-                    lost_last_turn=player.lost_last_turn,
+                    BuyEvent(pet, target_pet, player.pets, player.lost_last_turn)
                 )
-                pet.data.handle_event(
-                    pet,
-                    Event.SUMMON,
-                    source=target_pet,
-                    friends=player.pets,
-                    lost_last_turn=player.lost_last_turn,
-                )
+                pet.data.handle_event(SummonEvent(pet, target_pet, player.pets))
 
-        elif isinstance(purchased.data, ConsumableFood):
+        else:
             target_pet = player.pets[self.target_index]
             for pet in player.pets:
-                pet.data.handle_event(
-                    pet, Event.EAT, food=purchased.data, target=target_pet
-                )
-            purchased.data.consume(pet, friends=player.pets)
+                pet.data.handle_event(EatEvent(pet, purchased.data, target_pet))
 
-        elif isinstance(purchased.data, EquippableFood):
-            target_pet = player.pets[self.target_index]
-            for pet in player.pets:
-                pet.data.handle_event(
-                    pet, Event.EAT, food=purchased.data, target=target_pet
-                )
-            target_pet.food = purchased.data
+            if isinstance(purchased.data, ConsumableFood):
+                purchased.data.consume(pet, friends=player.pets)
+            elif isinstance(purchased.data, EquippableFood):
+                target_pet.food = purchased.data
 
 
 @dataclass
@@ -127,9 +108,10 @@ class Sell:
         del player.pets[self.index]
 
         for pet in player.pets:
-            pet.data.handle_event(pet, Event.SELL, source=sold_pet, friends=player.pets)
+            pet.data.handle_event(SellEvent(pet, sold_pet, player.pets, player))
+
         sold_pet.data.handle_event(
-            sold_pet, Event.SELL, source=sold_pet, friends=player.pets, player=player
+            SellEvent(sold_pet, sold_pet, player.pets, player)
         )
         player.money += sold_pet.level
 
@@ -290,7 +272,7 @@ class Game:
             for pet in player.pets:
                 pet.battle_attack = 0
                 pet.battle_health = 0
-                pet.data.handle_event(pet, Event.START_ROUND, source=pet, player=player)
+                pet.data.handle_event(StartRoundEvent(pet, player))
 
     def finish_round(self):
         battle_result = self.resolve_battle()
@@ -303,17 +285,16 @@ class Game:
         elif battle_result == BattleResult.P2_WIN:
             lose_round(self.p1, self.round)
 
-
     def resolve_battle(self):
         p1_pets = self.p1.get_pets_for_battle()
         p2_pets = self.p2.get_pets_for_battle()
 
         # FIXME go in decreasing order of attack
         for pet in p1_pets:
-            pet.handle_event(Event.START_BATTLE, friends=p1_pets, enemies=p2_pets)
+            pet.handle_event(StartBattleEvent(pet, p1_pets, p2_pets))
 
         for pet in p2_pets:
-            pet.handle_event(Event.START_BATTLE, friends=p2_pets, enemies=p1_pets)
+            pet.handle_event(StartBattleEvent(pet, p2_pets, p1_pets))
 
         while p1_pets and p2_pets:
             if self.verbose:
@@ -321,9 +302,9 @@ class Game:
                 print("p2:", p2_pets)
 
             for pet in p1_pets:
-                pet.handle_event(Event.BEFORE_ATTACK, friends=p1_pets, enemies=p2_pets)
+                pet.handle_event(BeforeAttackEvent(pet, p1_pets, p2_pets))
             for pet in p2_pets:
-                pet.handle_event(Event.BEFORE_ATTACK, friends=p2_pets, enemies=p1_pets)
+                pet.handle_event(BeforeAttackEvent(pet, p2_pets, p1_pets))
 
             if len(p1_pets) == 0 or len(p2_pets) == 0:
                 break
@@ -335,19 +316,11 @@ class Game:
 
             for pet in p1_pets:
                 pet.handle_event(
-                    Event.HURT,
-                    damage=p2_damage,
-                    source=p1_pets[-1],
-                    friends=p1_pets,
-                    enemies=p2_pets,
+                    HurtEvent(pet, p1_pets[-1], p2_damage, p1_pets, p2_pets)
                 )
             for pet in p2_pets:
                 pet.handle_event(
-                    Event.HURT,
-                    damage=p1_damage,
-                    source=p2_pets[-1],
-                    friends=p2_pets,
-                    enemies=p1_pets,
+                    HurtEvent(pet, p2_pets[-1], p1_damage, p2_pets, p1_pets)
                 )
 
             if len(p1_pets) == 0 or len(p2_pets) == 0:
@@ -355,46 +328,30 @@ class Game:
 
             for pet in p1_pets:
                 pet.handle_event(
-                    Event.AFTER_ATTACK,
-                    source=p1_pets[-1],
-                    target=p2_pets[-1],
-                    friends=p1_pets,
-                    enemies=p2_pets,
+                    AfterAttackEvent(pet, p1_pets[-1], p2_pets[-1], p1_pets, p2_pets)
                 )
             for pet in p2_pets:
                 pet.handle_event(
-                    Event.AFTER_ATTACK,
-                    source=p2_pets[-1],
-                    target=p1_pets[-1],
-                    friends=p2_pets,
-                    enemies=p1_pets,
+                    AfterAttackEvent(pet, p2_pets[-1], p1_pets[-1], p2_pets, p1_pets)
                 )
 
             if p1_pets and p1_pets[-1].total_health() <= 0:
                 # FIXME - if meat kills, this will unintentionally double kill
                 source = p1_pets.pop()
                 index = len(p1_pets)
-                source.handle_event_object(SelfFaintEvent(source, index, p1_pets, p2_pets))
+                source.handle_event(
+                    SelfFaintEvent(source, index, p1_pets, p2_pets)
+                )
                 for pet in p1_pets:
-                    pet.handle_event(
-                        Event.FRIEND_FAINT,
-                        source=source,
-                        index=index,
-                        friends=p1_pets,
-                        enemies=p2_pets,
-                    )
+                    pet.handle_event(FriendFaintEvent(pet, source, index, p1_pets, p2_pets))
             if p2_pets and p2_pets[-1].total_health() <= 0:
                 source = p2_pets.pop()
                 index = len(p2_pets)
-                source.handle_event_object(SelfFaintEvent(source, index, p2_pets, p1_pets))
+                source.handle_event(
+                    SelfFaintEvent(source, index, p2_pets, p1_pets)
+                )
                 for pet in p2_pets:
-                    pet.handle_event(
-                        Event.FRIEND_FAINT,
-                        source=source,
-                        index=index,
-                        friends=p2_pets,
-                        enemies=p1_pets,
-                    )
+                    pet.handle_event(FriendFaintEvent(pet, source, index, p2_pets, p1_pets))
 
         if self.verbose:
             print("p1:", p1_pets)
@@ -422,7 +379,7 @@ class Game:
             if self.current_player_index == 0:
                 for player in self.players:
                     for pet in player.pets:
-                        pet.handle_event(Event.END_TURN, friends=player.pets)
+                        pet.handle_event(EndTurnEvent(pet, player.pets))
 
                 self.finish_round()
                 self.round += 1

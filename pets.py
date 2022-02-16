@@ -10,7 +10,7 @@ class Ant(PetData):
     health = 1
     tier = 1
 
-    def handle_event_object(self, event):
+    def handle_event(self, event):
         if isinstance(event, SelfFaintEvent):
             if event.friends:
                 friend = random.choice(event.friends)
@@ -24,17 +24,15 @@ class Beaver(PetData):
     health = 2
     tier = 1
 
-    @staticmethod
-    def handle_event(self, event, **kwargs):
-        if event == Event.SELL:
-            if kwargs["source"] == self:
-                friends = kwargs["friends"]
-                if len(friends) < 2:
-                    for friend in friends:
-                        friend.bonus_health += self.level
+    def handle_event(self, event):
+        if isinstance(event, SellEvent):
+            if event.source == event.self:
+                if len(event.friends) < 2:
+                    for friend in event.friends:
+                        friend.bonus_health += event.self.level
                 else:
-                    for friend in random.sample(friends, 2):
-                        friend.bonus_health += self.level
+                    for friend in random.sample(event.friends, 2):
+                        friend.bonus_health += event.self.level
 
 
 @dataclass
@@ -43,7 +41,7 @@ class Cricket(PetData):
     health = 2
     tier = 1
 
-    def handle_event_object(self, event):
+    def handle_event(self, event):
         if isinstance(event, SelfFaintEvent):
             if len(event.friends) < 5:
                 event.friends.insert(event.index, Pet(ZombieCricket()))
@@ -56,13 +54,12 @@ class Duck(PetData):
     health = 3
     tier = 1
 
-    @staticmethod
-    def handle_event(self, event, **kwargs):
-        if event == Event.SELL:
-            if kwargs["source"] == self:
+    def handle_event(self, event):
+        if isinstance(event, SellEvent):
+            if event.source == event.self:
                 buyable_pets = [
                     buyable
-                    for buyable in kwargs["player"].shop
+                    for buyable in event.player.shop
                     if isinstance(buyable.data, PetData)
                 ]
                 for pet in buyable_pets:
@@ -75,13 +72,12 @@ class Fish(PetData):
     health = 3
     tier = 1
 
-    @staticmethod
-    def handle_event(self, event, **kwargs):
-        if event == Event.LEVEL_UP:
-            if kwargs["source"] == self:
-                for friend in kwargs["friends"]:
-                    friend.bonus_attack += self.level - 1
-                    friend.bonus_health += self.level - 1
+    def handle_event(self, event):
+        if isinstance(event, LevelUpEvent):
+            if event.source == event.self:
+                for friend in event.friends:
+                    friend.bonus_attack += event.self.level - 1
+                    friend.bonus_health += event.self.level - 1
 
 
 @dataclass
@@ -90,12 +86,10 @@ class Horse(PetData):
     health = 1
     tier = 1
 
-    @staticmethod
-    def handle_event(self, event, **kwargs):
-        if event == Event.SUMMON:
-            source = kwargs["source"]
-            if source != self:
-                source.battle_attack += 1
+    def handle_event(self, event):
+        if isinstance(event, SummonEvent):
+            if event.source != event.self:
+                event.source.battle_attack += 1
 
 
 @dataclass
@@ -104,20 +98,17 @@ class Mosquito(PetData):
     health = 2
     tier = 1
 
-    @staticmethod
-    def handle_event(self, event, **kwargs):
-        if event == Event.START_BATTLE:
-            friends = kwargs["friends"]
-            enemies = kwargs["enemies"]
-            if enemies:
-                if len(enemies) < self.level:
-                    for enemy in enemies:
-                        take_damage(enemy, 1, enemies, friends)
+    def handle_event(self, event):
+        if isinstance(event, StartBattleEvent):
+            if event.enemies:
+                if len(event.enemies) < event.self.level:
+                    for enemy in event.enemies:
+                        take_damage(enemy, 1, event.enemies, event.friends)
                         # FIXME - if this hits a flamingo, should the flamingo
                         # buff the ally before the second instance lands?
                 else:
-                    for enemy in random.sample(enemies, self.level):
-                        take_damage(enemy, 1, enemies, friends)
+                    for enemy in random.sample(event.enemies, event.self.level):
+                        take_damage(enemy, 1, event.enemies, event.friends)
 
 
 @dataclass
@@ -126,17 +117,14 @@ class Otter(PetData):
     health = 2
     tier = 1
 
-    @staticmethod
-    def handle_event(self, event, **kwargs):
-        if event == Event.BUY:
-            if kwargs["source"] == self:
-                friends = [
-                    pet for pet in kwargs["friends"] if pet is not None and pet != self
-                ]
+    def handle_event(self, event):
+        if isinstance(event, BuyEvent):
+            if event.source == event.self:
+                friends = [pet for pet in event.friends if pet != event.self]
                 if friends:
                     friend = random.choice(friends)
-                    friend.bonus_attack += self.level
-                    friend.bonus_health += self.level
+                    friend.bonus_attack += event.self.level
+                    friend.bonus_health += event.self.level
 
 
 @dataclass
@@ -145,11 +133,10 @@ class Pig(PetData):
     health = 1
     tier = 1
 
-    @staticmethod
-    def handle_event(self, event, **kwargs):
-        if event == Event.SELL:
-            if kwargs["source"] == self:
-                kwargs["player"].money += 1
+    def handle_event(self, event):
+        if isinstance(event, SellEvent):
+            if event.source == event.self:
+                event.player.money += 1
 
 
 @dataclass
@@ -165,12 +152,11 @@ class Crab(PetData):
     health = 3
     tier = 2
 
-    @staticmethod
-    def handle_event(self, event, **kwargs):
-        if event == Event.BUY:
-            if kwargs["source"] == self:
-                max_friend_health = max(pet.total_health() for pet in kwargs["friends"])
-                self.bonus_health = max_friend_health - 3
+    def handle_event(self, event):
+        if isinstance(event, BuyEvent):
+            if event.source == event.self:
+                max_friend_health = max(pet.total_health() for pet in event.friends)
+                event.self.bonus_health = max_friend_health - 3
 
 
 @dataclass
@@ -179,14 +165,12 @@ class Dodo(PetData):
     health = 3
     tier = 2
 
-    @staticmethod
-    def handle_event(self, event, **kwargs):
-        if event == Event.START_BATTLE:
-            friends = kwargs["friends"]
-            index = friends.index(self)
-            if index < len(friends) - 1:
-                friends[index + 1].bonus_attack += int(
-                    self.total_attack() * 0.5 * self.level
+    def handle_event(self, event):
+        if isinstance(event, StartBattleEvent):
+            index = event.friends.index(event.self)
+            if index < len(event.friends) - 1:
+                event.friends[index + 1].bonus_attack += int(
+                    event.self.total_attack() * 0.5 * event.self.level
                 )
 
 
@@ -196,15 +180,14 @@ class Elephant(PetData):
     health = 5
     tier = 2
 
-    @staticmethod
-    def handle_event(self, event, **kwargs):
-        if event == Event.BEFORE_ATTACK:
-            friends = kwargs["friends"]
-            enemies = kwargs["enemies"]
-            if friends[-1] == self:
-                for i in range(self.level):
-                    if len(friends) - 2 - i >= 0:
-                        take_damage(friends[-2 - i], 1, friends, enemies)
+    def handle_event(self, event):
+        if isinstance(event, BeforeAttackEvent):
+            if event.friends[-1] == event.self:
+                for i in range(event.self.level):
+                    if len(event.friends) - 2 - i >= 0:
+                        take_damage(
+                            event.friends[-2 - i], 1, event.friends, event.enemies
+                        )
 
 
 @dataclass
@@ -213,9 +196,13 @@ class Flamingo(PetData):
     health = 1
     tier = 2
 
-    @staticmethod
-    def handle_event(self, event, **kwargs):
-        pass  # FIXME
+    def handle_event(self, event):
+        if isinstance(event, SelfFaintEvent):
+            if event.friends:
+                for i in range(2):
+                    if event.index - i >= 0:
+                        event.friends[event.index - i].bonus_attack += event.self.level
+                        event.friends[event.index - i].bonus_health += event.self.level
 
 
 @dataclass
@@ -224,7 +211,7 @@ class Hedgehog(PetData):
     health = 2
     tier = 2
 
-    def handle_event_object(self, event):
+    def handle_event(self, event):
         if isinstance(event, SelfFaintEvent):
             if event.enemies is None:
                 return
@@ -240,17 +227,16 @@ class Peacock(PetData):
     health = 5
     tier = 2
 
-    @staticmethod
-    def handle_event(self, event, **kwargs):
-        if event == Event.START_BATTLE:
-            self.effect_charges = self.level
+    def handle_event(self, event):
+        if isinstance(event, StartBattleEvent):
+            event.self.effect_charges = event.self.level
             # FIXME - this isn't correct. the charges should persist outside of battle.
 
-        if event == Event.HURT:
-            if kwargs["source"] == self:
-                if self.effect_charges > 0:
-                    self.bonus_attack += int(self.total_attack() * 0.5)
-                    self.effect_charges -= 1
+        if isinstance(event, HurtEvent):
+            if event.source == event.self:
+                if event.self.effect_charges > 0:
+                    event.self.bonus_attack += int(event.self.total_attack() * 0.5)
+                    event.self.effect_charges -= 1
 
 
 @dataclass
@@ -259,7 +245,7 @@ class Rat(PetData):
     health = 5
     tier = 2
 
-    def handle_event_object(self, event):
+    def handle_event(self, event):
         if isinstance(event, SelfFaintEvent):
             if event.enemies is None:
                 return
@@ -282,17 +268,15 @@ class Shrimp(PetData):
     health = 3
     tier = 2
 
-    @staticmethod
-    def handle_event(self, event, **kwargs):
-        if event == Event.SELL:
-            if kwargs["source"] != self:
-                friends = kwargs["friends"]
-                if len(friends) < 2:
-                    for friend in friends:
-                        friend.bonus_health += self.level
+    def handle_event(self, event):
+        if isinstance(event, SellEvent):
+            if event.source != event.self:
+                if len(event.friends) < 2:
+                    for friend in event.friends:
+                        friend.bonus_health += event.self.level
                 else:
-                    for friend in random.sample(friends, 1):
-                        friend.bonus_health += self.level
+                    for friend in random.sample(event.friends, 1):
+                        friend.bonus_health += event.self.level
 
 
 @dataclass
@@ -301,7 +285,7 @@ class Spider(PetData):
     health = 2
     tier = 2
 
-    def handle_event_object(self, event):
+    def handle_event(self, event):
         if isinstance(event, SelfFaintEvent):
             if len(event.friends) < 5:
                 spawned_pet = Pet(random.choice(PACK1_PETS[3]))
@@ -312,18 +296,15 @@ class Spider(PetData):
                 # FIXME - trigger summon
 
 
-
 @dataclass
 class Swan(PetData):
     attack = 1
     health = 3
     tier = 2
 
-    @staticmethod
-    def handle_event(self, event, **kwargs):
-        if event == Event.START_ROUND:
-            if kwargs["source"] == self:
-                kwargs["player"].money += self.level
+    def handle_event(self, event):
+        if isinstance(event, StartRoundEvent):
+            event.player.money += event.self.level
 
 
 @dataclass
@@ -332,7 +313,7 @@ class Badger(PetData):
     health = 4
     tier = 3
 
-    def handle_event_object(self, event):
+    def handle_event(self, event):
         if isinstance(event, SelfFaintEvent):
             if event.index > 0:
                 take_damage(
@@ -359,21 +340,21 @@ class Badger(PetData):
                     event.enemies,
                 )
 
+
 @dataclass
 class Blowfish(PetData):
     attack = 3
     health = 5
     tier = 3
 
-    @staticmethod
-    def handle_event(self, event, **kwargs):
-        if event == Event.HURT:
-            if kwargs["source"] == self:
-                friends = kwargs["friends"]
-                enemies = kwargs["enemies"]
-                if enemies:
-                    random_enemy = random.choice(enemies)
-                    take_damage(random_enemy, 2 * self.level, enemies, friends)
+    def handle_event(self, event):
+        if isinstance(event, HurtEvent):
+            if event.source == event.self:
+                if event.enemies:
+                    random_enemy = random.choice(event.enemies)
+                    take_damage(
+                        random_enemy, 2 * event.self.level, event.enemies, event.friends
+                    )
 
 
 @dataclass
@@ -382,15 +363,13 @@ class Camel(PetData):
     health = 5
     tier = 3
 
-    @staticmethod
-    def handle_event(self, event, **kwargs):
-        if event == Event.HURT:
-            if kwargs["source"] == self:
-                friends = kwargs["friends"]
-                index = friends.index(self)
+    def handle_event(self, event):
+        if isinstance(event, HurtEvent):
+            if event.source == event.self:
+                index = event.friends.index(event.self)
                 if index > 0:
-                    friends[index - 1].bonus_attack += self.level
-                    friends[index - 1].bonus_health += 2 * self.level
+                    event.friends[index - 1].bonus_attack += event.self.level
+                    event.friends[index - 1].bonus_health += 2 * event.self.level
 
 
 @dataclass
@@ -399,15 +378,13 @@ class Dog(PetData):
     health = 2
     tier = 3
 
-    @staticmethod
-    def handle_event(self, event, **kwargs):
-        if event == Event.SUMMON:
-            source = kwargs["source"]
-            if source != self:
+    def handle_event(self, event):
+        if isinstance(event, SummonEvent):
+            if event.source != event.self:
                 if random.random() < 0.5:
-                    self.bonus_attack += self.level
+                    event.self.bonus_attack += event.self.level
                 else:
-                    self.bonus_health += self.level
+                    event.self.bonus_health += event.self.level
 
 
 @dataclass
@@ -416,15 +393,13 @@ class Giraffe(PetData):
     health = 5
     tier = 3
 
-    @staticmethod
-    def handle_event(self, event, **kwargs):
-        if event == Event.END_TURN:
-            friends = kwargs["friends"]
-            index = friends.index(self)
-            for i in range(self.level):
-                if index + 1 + i < len(friends):
-                    friends[index + 1 + i].bonus_attack += 1
-                    friends[index + 1 + i].bonus_health += 1
+    def handle_event(self, event):
+        if isinstance(event, EndTurnEvent):
+            index = event.friends.index(event.self)
+            for i in range(event.self.level):
+                if index + 1 + i < len(event.friends):
+                    event.friends[index + 1 + i].bonus_attack += 1
+                    event.friends[index + 1 + i].bonus_health += 1
 
 
 @dataclass
@@ -433,16 +408,15 @@ class Kangaroo(PetData):
     health = 2
     tier = 3
 
-    @staticmethod
-    def handle_event(self, event, **kwargs):
-        if event == Event.AFTER_ATTACK:
-            friends = kwargs["friends"]
-            source_index = friends.index(kwargs["source"])
-            self_index = friends.index(self)
+    def handle_event(self, event):
+        if isinstance(event, AfterAttackEvent):
+            source_index = event.friends.index(event.source)
+            self_index = event.friends.index(event.self)
 
             if source_index == self_index + 1:
-                self.bonus_attack += 2 * self.level
-                self.bonus_health += 2 * self.level
+                event.self.bonus_attack += 2 * event.self.level
+                event.self.bonus_health += 2 * event.self.level
+
 
 
 @dataclass
@@ -451,12 +425,12 @@ class Ox(PetData):
     health = 4
     tier = 3
 
-    @staticmethod
-    def handle_event(self, event, **kwargs):
-        if event == Event.FRIEND_FAINT:
-            if kwargs["friends"].index(self) == kwargs["index"] - 1:
-                self.bonus_attack += 2 * self.level
-                self.food = Melon()
+    def handle_event(self, event):
+        if isinstance(event, FriendFaintEvent):
+            if event.friends.index(event.self) == event.index - 1:
+                event.self.bonus_attack += 2 * event.self.level
+                event.self.food = Melon()
+
 
 
 @dataclass
@@ -465,12 +439,10 @@ class Rabbit(PetData):
     health = 2
     tier = 3
 
-    @staticmethod
-    def handle_event(self, event, **kwargs):
-        if event == Event.EAT:
-            target_pet = kwargs["target"]
-            if target_pet != self:
-                target_pet.bonus_health += self.level
+    def handle_event(self, event):
+        if isinstance(event, EatEvent):
+            if event.target != event.self:
+                event.target.bonus_health += event.self.level
 
 
 @dataclass
@@ -479,7 +451,7 @@ class Sheep(PetData):
     health = 2
     tier = 3
 
-    def handle_event_object(self, event):
+    def handle_event(self, event):
         if isinstance(event, SelfFaintEvent):
             for _ in range(2):
                 if len(event.friends) < 5:
@@ -500,16 +472,15 @@ class Snail(PetData):
     health = 2
     tier = 3
 
-    @staticmethod
-    def handle_event(self, event, **kwargs):
-        if event == Event.BUY:
-            if kwargs["source"] == self:
-                if kwargs["lost_last_turn"]:
-                    for pet in kwargs["friends"]:
-                        if pet == self:
+    def handle_event(self, event):
+        if isinstance(event, BuyEvent):
+            if event.source == event.self:
+                if event.lost_last_turn:
+                    for pet in event.friends:
+                        if pet == event.self:
                             continue
-                        pet.bonus_attack += self.level
-                        pet.bonus_health += self.level
+                        pet.bonus_attack += event.self.level
+                        pet.bonus_health += event.self.level
 
 
 @dataclass
@@ -518,10 +489,11 @@ class Turtle(PetData):
     health = 2
     tier = 3
 
-    def handle_event_object(self, event):
+    def handle_event(self, event):
         if isinstance(event, SelfFaintEvent):
             if 0 <= event.index - 1 < len(event.friends):
                 event.friends[event.index - 1].food = Melon()
+
 
 @dataclass
 class Deer(PetData):
@@ -563,7 +535,7 @@ class Apple(ConsumableFood):
 
 @dataclass
 class Honey(EquippableFood):
-    def handle_event_object(self, event):
+    def handle_event(self, event):
         if isinstance(event, SelfFaintEvent):
             if len(event.friends) < 5:
                 event.friends.insert(event.index, Pet(HoneyBee()))
@@ -587,15 +559,11 @@ class Cupcake(ConsumableFood):
 
 @dataclass
 class MeatBone(EquippableFood):
-    @staticmethod
-    def handle_event(self, event, **kwargs):
-        if event == Event.AFTER_ATTACK:
-            if kwargs["source"] == self:
-                target = kwargs["target"]
-                friends = kwargs["friends"]
-                enemies = kwargs["enemies"]
-                if target.total_health() >= 0:
-                    take_damage(target, 5, enemies, friends)
+    def handle_event(self, event):
+        if isinstance(event, AfterAttackEvent):
+            if event.source == event.self:
+                if event.target.total_health() >= 0:
+                    take_damage(event.target, 5, event.enemies, event.friends)
 
 
 @dataclass
@@ -607,9 +575,7 @@ class SleepingPill(ConsumableFood):
 
 @dataclass
 class Garlic(EquippableFood):
-    @staticmethod
-    def handle_event(self, event, **kwargs):
-        pass
+    pass
 
 
 @dataclass
@@ -628,14 +594,12 @@ class Chocolate(ConsumableFood):
 
 @dataclass
 class Melon(EquippableFood):
-    @staticmethod
-    def handle_event(self, event, **kwargs):
-        if event == Event.HURT:
-            if kwargs["source"] == self:
-                damage = kwargs["damage"]
-                damage_reduction = min(damage, 20)
-                self.bonus_health += damage_reduction
-                self.food = None
+    def handle_event(self, event):
+        if isinstance(event, HurtEvent):
+            if event.source == event.self:
+                damage_reduction = min(event.damage, 20)
+                event.self.bonus_health += damage_reduction
+                event.self.food = None
 
 
 def cumulative_dict(source):

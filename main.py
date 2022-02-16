@@ -162,4 +162,4 @@ def evaluate_winrates(env, num_episodes):
 if __name__ == "__main__":
     env = Env()
 
-    evaluate_winrates(env, num_episodes=1000)
+    evaluate_winrates(env, num_episodes=100)
