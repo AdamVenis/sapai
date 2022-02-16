@@ -28,7 +28,6 @@ PLAN
     - tier 3 food
     - all the pets + effects
     - better visualization of the game
-    - centralize the resolution stack
     - learn more about accurate resolution orders
     - add replays
 
@@ -41,6 +40,7 @@ PLAN
 5. profit
 
 CURRENT TASK:
+    - centralize the resolution stack
  
 
 BUGS:

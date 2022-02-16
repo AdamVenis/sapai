@@ -62,11 +62,6 @@ class Pet:
     def take_damage(self, damage):
         self.bonus_health -= damage
 
-    def handle_event(self, event):
-        self.data.handle_event(event)
-        if self.food is not None:
-            self.food.handle_event(event)
-
     def combine(self, other):
         self.copies += 1
 
@@ -196,7 +191,7 @@ def take_damage(pet, damage, friends, enemies):
     fainted = pet.total_health() <= 0
 
     for friend in friends:
-        friend.handle_event(HurtEvent(friend, pet, damage, friends, enemies))
+        handle_event(HurtEvent(friend, pet, damage, friends, enemies))
 
     if fainted and pet in friends:
         faint(pet, friends, enemies)
@@ -205,7 +200,12 @@ def take_damage(pet, damage, friends, enemies):
 def faint(pet, friends, enemies):
     index = friends.index(pet)
     del friends[index]
-    pet.handle_event(SelfFaintEvent(pet, index, friends, enemies))
+    handle_event(SelfFaintEvent(pet, index, friends, enemies))
 
     for friend in friends:
-        friend.handle_event(FriendFaintEvent(friend, pet, index, friends, enemies))
+        handle_event(FriendFaintEvent(friend, pet, index, friends, enemies))
+
+def handle_event(event):
+    event.self.data.handle_event(event)
+    if event.self.food is not None:
+        event.self.food.handle_event(event)
