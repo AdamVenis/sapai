@@ -235,6 +235,7 @@ class TestEverything(unittest.TestCase):
     def test_dog(self):
         game = Game()
         game.p1.pets = [Pet(pets.Dog())]
+        game.p1.shop[0] = Pet(pets.Fish())  # because if it's otter, the test fails lol
         game.step(Buy(0, 1))
         dog = game.p1.pets[0]
         self.assertEqual(dog.total_attack() + dog.total_health(), 5)

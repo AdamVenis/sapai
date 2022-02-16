@@ -26,9 +26,9 @@ PLAN
     - tier 3 food
     - all the pets + effects
     - better visualization of the game
-    - centralize the resolution stack
     - refactor events to be classes
     - learn more about accurate resolution orders
+    - add replays
 
 4. create and train a reinforcement learning agent
     X make random agent functional
@@ -39,6 +39,7 @@ PLAN
 5. profit
 
 CURRENT TASK:
+    - centralize the resolution stack
 
 SERIOUS BUGS:
 - general concerns over resolution ordering
